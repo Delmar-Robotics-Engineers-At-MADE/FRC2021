@@ -5,8 +5,8 @@
 const static double kToleranceDegrees = 2.0f;
 const static double kMaxRotateRate = 0.5;
 const static double kGamepadDeadZone = 0.1;
-const static double kSlowSpeedFactor = 0.5;
-const static double kFastSpeedFactor = 1.0;
+const static double kSlowSpeedFactor = 0.65;
+const static double kFastSpeedFactor = 0.9;
 
 const static double kPtuned = 0.006;
 const static double kItuned = 0.0015;
@@ -92,6 +92,10 @@ void Robot::TeleopInit() {
   */
   m_pidController = new frc2::PIDController (kP, kI, kD);
   m_pidController->SetTolerance(8, 8);  // within 8 degrees of target is considered on set point
+  m_leftfront.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
+  m_leftrear.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
+  m_rightfront.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
+  m_rightfront.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
 }
 
 double Robot::TrimSpeed (double s, double max) {
