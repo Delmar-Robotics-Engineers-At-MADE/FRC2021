@@ -12,6 +12,12 @@ const static double kPtuned = 0.006;
 const static double kItuned = 0.0015;
 const static double kDtuned = 0.001;
 
+const static double kFieldRelDriveSmoothTime = 0.4;
+const static double kHeadingDiscontinuityZone = 3; // degrees either side of 0
+const static double kTargetDiscontinuityZone = 15; // degrees either side of 0
+//const static double kHeadingDiscontinuityZone2 = 360 - kHeadingDiscontinuityZone1;
+//const static double kTargetDiscontinuityZone2 = 360 - kTargetDiscontinuityZone1;
+
 void Robot::RobotInit() {
 
   m_stick = new Joystick(joystickChannel);
@@ -103,6 +109,9 @@ void Robot::TeleopInit() {
   // m_rightfront.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
   // m_rightfront.SetNeutralMode(ctre::phoenix::motorcontrol::NeutralMode::Coast);
 
+  // needed to smooth out field-relative driving
+  m_timer.Reset();
+  m_timer.Start();
 }
 
 double Robot::TrimSpeed (double s, double max) {
@@ -128,6 +137,13 @@ int quadrant (double a) { // quadrant of angle, I, II, III, or IV
   else if (a <= 270) result = 3;
   else result = 4;
   return result;
+}
+
+bool isInDiscontinuityZone (double curr, double target) {
+  // heading is close to 0 and target is close to heading
+  return ( (curr < kHeadingDiscontinuityZone || curr > 360 - kHeadingDiscontinuityZone)
+     && abs(curr - target) < kHeadingDiscontinuityZone );
+        // && (target < kTargetDiscontinuityZone || target > 360 - kTargetDiscontinuityZone) ) 
 }
 
 void Robot::TeleopPeriodic() {
@@ -195,8 +211,12 @@ void Robot::TeleopPeriodic() {
       m_pidController->SetSetpoint(targetAngle);
       frc::SmartDashboard::PutNumber ("Angle set point", targetAngle);
 
-      // use pid for motor speed      
-      rotateToAngleRate = m_pidController->Calculate(currAngle);
+      // use pid for motor speed, unless in "discontinuity zone" near 0
+      if (isInDiscontinuityZone(currAngle, targetAngle)) {
+        rotateToAngleRate = 0.0;   // avoid bouncing back and forth as heading flips between 1 and 355
+      } else {
+        rotateToAngleRate = m_pidController->Calculate(currAngle);
+      }
       // trim the speed so it's not too fast
       rotateToAngleRate = TrimSpeed(rotateToAngleRate, kMaxRotateRate);
       // if heading is quadrant I and target is IV, or vice versa, flip motor direction
@@ -204,7 +224,7 @@ void Robot::TeleopPeriodic() {
         || (quadrant(currAngle) == 4 && quadrant(targetAngle) == 1)) {
         rotateToAngleRate = -rotateToAngleRate;
       } else if (abs(currAngle - targetAngle) > 180) {
-        // if delta angle > 180, flip motor direction
+        // if delta angle > 180, flip motor direction so we take shorter route
         rotateToAngleRate = -rotateToAngleRate;
       }
 
@@ -212,6 +232,9 @@ void Robot::TeleopPeriodic() {
       double left_power = rotateToAngleRate;
       double right_power = -rotateToAngleRate;
       if (abs(kMaxRotateRate - abs(rotateToAngleRate)) / kMaxRotateRate > 0.4) { 
+        m_field_rel_timer = m_timer.Get(); // once decide it's ok to move forward, don't stutter
+      }
+      if (m_timer.Get() < m_field_rel_timer + kFieldRelDriveSmoothTime) { 
         // add forard driving to rotation, to get field relative driving
         double addition = field_rel_R * speed_factor;
         left_power += addition;
@@ -228,7 +251,7 @@ void Robot::TeleopPeriodic() {
     } else {
       // not rotating; drive by stick
       m_robotDrive.ArcadeDrive(ScaleSpeed(-m_stick->GetY(), speed_factor), ScaleSpeed(m_stick->GetX(), speed_factor));
-      m_pidController->Reset(); // clears out integral state, etc
+      // was... m_pidController->Reset(); // clears out integral state, etc
     }
   } catch (std::exception& ex ) {
     std::string err_string = "Error communicating with Drive System:  ";

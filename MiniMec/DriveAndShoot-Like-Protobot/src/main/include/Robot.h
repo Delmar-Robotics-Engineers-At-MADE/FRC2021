@@ -68,6 +68,7 @@ class Robot : public TimedRobot /*, public PIDOutput */ {  // MJS: modified for 
 
     frc2::PIDController *m_pidController;
     frc::Timer m_timer;
+    double m_field_rel_timer;
 
     double rotateToAngleRate;           // Current rotation rate
     double speed_factor = 0.5;
