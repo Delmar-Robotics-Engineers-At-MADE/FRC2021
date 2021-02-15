@@ -25,7 +25,7 @@ public:
 
     std::shared_ptr<NetworkTable> table;
     int totalObjects = 0, totalBalls = 0;
-    std::vector<Ball*> balls = std::vector<Ball*>(0);
+    // std::vector<Ball*> balls = std::vector<Ball*>(0);  // this is an unnecessary memory management complexity
     std::vector<std::string> classes;
     std::vector<double> boxes, box;
     nt::NetworkTableEntry totalObjectsEntry, classesEntry, boxesEntry; // were pointers
@@ -46,4 +46,5 @@ public:
 
     virtual int getTotalBalls();
     virtual std::vector<Ball*> getBalls();
+    virtual void disposeBalls(std::vector<Ball*> balls);
 };

@@ -1,4 +1,5 @@
 #include "Vision.h"
+#include <iostream> // for std::cout
 
 double VisionSubsystem::Gamepiece::getAngle()
 {
@@ -31,31 +32,15 @@ void VisionSubsystem::periodic()
     boxes = boxesEntry.GetDoubleArray(std::vector<double>(4 * totalObjects));
 
     // Count up number of balls
-    for (auto s : classes)
-    {
-    if (s == "Ball")
-    {
-        totalBalls++;
-    }
+    for (auto s : classes) {
+        if (s == "Power_Cell") {
+            totalBalls++;
+        }
     }
 
-    balls = std::vector<Ball*>(totalBalls);
-    int index = 0;
+    // was... balls = std::vector<Ball*>(totalBalls);
 
-    // Generate array of Ball objects
-    for (int i = 0; i < totalObjects; i += 4)
-    {
-    box = std::vector<double>(4);
-    for (int j = 0; j < 4; j++)
-    {
-        box[j] = boxes[i + j];
-    }
-    if (classes[i] == "Ball")
-    {
-        balls[index] = new Ball(box);
-        index++;
-    }
-    }
+    // Generate array of Ball objects... moved to getBalls()
 }
 
 int VisionSubsystem::getTotalBalls()
@@ -65,5 +50,30 @@ int VisionSubsystem::getTotalBalls()
 
 std::vector<VisionSubsystem::Ball*> VisionSubsystem::getBalls()
 {
+    // was... return balls;
+    // Generate array of Ball objects... moved here from periodic
+    // std::cout << "Start of getBalls" << std::endl;
+    int index = 0;
+    std::vector<Ball*> balls = std::vector<Ball*>(totalBalls); 
+    for (int i = 0; i < totalObjects; i += 4) {
+        box = std::vector<double>(4);
+        for (int j = 0; j < 4; j++) {
+            box[j] = boxes[i + j];
+        }
+        if (classes[i] == "Power_Cell") {
+            balls[index] = new Ball(box);
+            index++;
+        }
+    }
+    // std::cout << "End of getBalls" << std::endl;
     return balls;
+}
+
+void VisionSubsystem::disposeBalls(std::vector<VisionSubsystem::Ball*> balls)
+{
+    for (int i = 0; i < totalObjects; i += 4) {
+        if (balls[i] != NULL) {
+            delete(balls[i]);
+        }
+    }
 }

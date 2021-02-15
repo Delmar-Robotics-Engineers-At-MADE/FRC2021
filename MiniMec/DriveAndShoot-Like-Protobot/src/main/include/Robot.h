@@ -22,6 +22,8 @@
 #include <frc/drive/DifferentialDrive.h>
 #include <frc/Talon.h>
 
+#include "Vision.h"
+
 using namespace frc;
 
 class Robot : public TimedRobot /*, public PIDOutput */ {  // MJS: modified for new PID framework
@@ -72,5 +74,7 @@ class Robot : public TimedRobot /*, public PIDOutput */ {  // MJS: modified for 
 
     double rotateToAngleRate;           // Current rotation rate
     double speed_factor = 0.5;
+
+    VisionSubsystem *m_visionSubsystem;
 };
 

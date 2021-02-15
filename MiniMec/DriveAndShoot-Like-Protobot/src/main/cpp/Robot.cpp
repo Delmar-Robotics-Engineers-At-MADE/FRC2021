@@ -43,6 +43,7 @@ void Robot::RobotInit() {
      * Multiple navX-model devices on a single robot are supported.
      ************************************************************************/
     ahrs = new AHRS(SPI::Port::kMXP);
+    m_visionSubsystem = new VisionSubsystem();
   }
   catch (std::exception &ex)
   {
@@ -65,7 +66,9 @@ void Robot::RobotInit() {
 
 }
 
-void Robot::RobotPeriodic() {}
+void Robot::RobotPeriodic() {
+  m_visionSubsystem->periodic();
+}
 
 void Robot::AutonomousInit() {
     m_timer.Reset();
@@ -158,6 +161,16 @@ void Robot::TeleopPeriodic() {
   frc::SmartDashboard::PutNumber("Angle", currAngle);
   frc::SmartDashboard::PutNumber("Heading", ahrs->GetCompassHeading());
   frc::SmartDashboard::PutNumber("Yaw", ahrs->GetYaw());
+
+  // exercise vision system
+  frc::SmartDashboard::PutNumber("Power Cells", m_visionSubsystem->getTotalBalls());
+  if (m_visionSubsystem->getTotalBalls() > 0) {
+    std::vector<VisionSubsystem::Ball*> balls = m_visionSubsystem->getBalls();
+    if (balls[0] != NULL) {
+		  frc::SmartDashboard::PutNumber("Cell0 angle", balls[0]->getAngle());
+    }
+    m_visionSubsystem->disposeBalls(balls);
+  }
 
   bool rotateToAngle = false;
   //bool stepOver = false;
