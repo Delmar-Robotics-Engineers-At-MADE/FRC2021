@@ -71,7 +71,8 @@ std::vector<VisionSubsystem::Ball*> VisionSubsystem::getBalls()
 
 void VisionSubsystem::disposeBalls(std::vector<VisionSubsystem::Ball*> balls)
 {
-    for (int i = 0; i < totalObjects; i += 4) {
+    // std::cout << "disposing " << balls.size() << " balls" << std::endl;
+    for (int i = 0; i < balls.size(); i += 4) {
         if (balls[i] != NULL) {
             delete(balls[i]);
         }
