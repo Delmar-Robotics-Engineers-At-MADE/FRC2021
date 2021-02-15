@@ -164,27 +164,24 @@ void Robot::TeleopPeriodic() {
 
   // exercise vision system
   frc::SmartDashboard::PutNumber("Power Cells", m_visionSubsystem->getTotalBalls());
-  if (m_visionSubsystem->getTotalBalls() > 0) {
-    std::vector<VisionSubsystem::Ball*> balls = m_visionSubsystem->getBalls();
-    if (balls[0] != NULL) {
-		  frc::SmartDashboard::PutNumber("Cell0 angle", balls[0]->getAngle());
-    }
-    m_visionSubsystem->disposeBalls(balls);
-  }
+  m_visionSubsystem->updateClosestBall();
+  frc::SmartDashboard::PutNumber("ball dist", m_visionSubsystem->distanceClosestBall);
+  frc::SmartDashboard::PutNumber("ball angle", m_visionSubsystem->angleClosestBall);
 
   bool rotateToAngle = false;
+  double targetAngle = 0.0;
   //bool stepOver = false;
   if ( m_stick->GetPOV() == 0) {
-      m_pidController->SetSetpoint(0.0f);
+      targetAngle= 0.0f;
       rotateToAngle = true;
   } else if ( m_stick->GetPOV() == 90) {
-      m_pidController->SetSetpoint(90.0f);
+      targetAngle = 90.0f;
       rotateToAngle = true;
   } else if ( m_stick->GetPOV() == 180) {
-      m_pidController->SetSetpoint(179.9f);
+      targetAngle = 179.9f;
       rotateToAngle = true;
   } else if ( m_stick->GetPOV() == 270) {
-      m_pidController->SetSetpoint(-90.0f);
+      targetAngle = 270.0f;
       rotateToAngle = true;
   // }  else if ( stick->GetRawButton(1)) {
   //     m_pidController->SetSetpoint(-90.0f);
@@ -200,6 +197,9 @@ void Robot::TeleopPeriodic() {
   if (field_rel_R > kGamepadDeadZone) {
     rotateToAngle = true;
     // was angle = copysign(angle, field_rel_X); // make angle negative if X is negative
+    // a little trig to convert joystick to angle
+    targetAngle =  90 - ConvertRadsToDegrees(atan(field_rel_Y/abs(field_rel_X)));
+    if (field_rel_X < 0) {targetAngle = 360 - targetAngle;}  // shift from -180>180 to 0>360
   }
   frc::SmartDashboard::PutNumber ("X", field_rel_X);
   frc::SmartDashboard::PutNumber ("Y", field_rel_Y);
@@ -218,9 +218,6 @@ void Robot::TeleopPeriodic() {
     if (rotateToAngle) {
       // MJS: since it's diff drive instead of mecanum drive, use tank method for rotation
 
-      // a little trig to convert joystick to angle
-      double targetAngle =  90 - ConvertRadsToDegrees(atan(field_rel_Y/abs(field_rel_X)));
-      if (field_rel_X < 0) {targetAngle = 360 - targetAngle;}  // shift from -180>180 to 0>360
       m_pidController->SetSetpoint(targetAngle);
       frc::SmartDashboard::PutNumber ("Angle set point", targetAngle);
 
@@ -264,7 +261,7 @@ void Robot::TeleopPeriodic() {
     } else {
       // not rotating; drive by stick
       m_robotDrive.ArcadeDrive(ScaleSpeed(-m_stick->GetY(), speed_factor), ScaleSpeed(m_stick->GetX(), speed_factor));
-      // was... m_pidController->Reset(); // clears out integral state, etc
+      m_pidController->Reset(); // clears out integral state, etc
     }
   } catch (std::exception& ex ) {
     std::string err_string = "Error communicating with Drive System:  ";

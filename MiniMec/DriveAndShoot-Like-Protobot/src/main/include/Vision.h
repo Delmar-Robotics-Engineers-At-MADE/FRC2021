@@ -6,9 +6,15 @@
 #include <networktables/NetworkTable.h>
 #include <networktables/NetworkTableInstance.h>
 #include <networktables/NetworkTableEntry.h>
+#include <frc/Timer.h>
 
 class VisionSubsystem {
+private:
+    frc::Timer m_timer;
+    double timeBallsLastSeen = 0.0;
 public:
+    double distanceClosestBall = 0.0;
+    double angleClosestBall = 0.0;
 
     class Gamepiece{
     public:
@@ -30,13 +36,13 @@ public:
     std::vector<double> boxes, box;
     nt::NetworkTableEntry totalObjectsEntry, classesEntry, boxesEntry; // were pointers
 
-    virtual ~VisionSubsystem() {
+    virtual ~VisionSubsystem() { // destructor
         //delete table;
         //delete totalObjectsEntry;
         //delete classesEntry;
         //delete boxesEntry;
     }
-    VisionSubsystem();
+    VisionSubsystem(); // constructor
 
     /**
      * Periodically updates the list of detected objects with the data found on
@@ -47,4 +53,5 @@ public:
     virtual int getTotalBalls();
     virtual std::vector<Ball*> getBalls();
     virtual void disposeBalls(std::vector<Ball*> balls);
+    virtual void updateClosestBall();
 };
