@@ -26,6 +26,8 @@
 #include "rev/ColorSensorV3.h"
 #include "rev/ColorMatch.h"
 
+#include "Vision.h"
+
 using namespace frc;
 
     // constants
@@ -97,6 +99,11 @@ using namespace frc;
 	const static double kPturret = 0.01;
 	const static double kIturret = 0.003;
 	const static double kDturret = 0.0;
+
+	// for field relative and vision
+	const static double kFieldRelDriveSmoothTime = 0.4;
+	const static double kHeadingDiscontinuityZone = 6; // degrees either side of 0
+	const static double kTargetDiscontinuityZone = 15; // degrees either side of 0
 
 class Robot: public TimedRobot {
 
@@ -221,6 +228,10 @@ class Robot: public TimedRobot {
 	std::string m_autoSelected_options_wait;
 	bool m_do_once_inited = false;
 
+	// vision and field relative
+	double m_field_rel_timer;
+	VisionSubsystem *m_visionSubsystem;
+
 	double TrimSpeed (double s, double max) {
 		double result = s > max ? max : s;
 		result = result < -max ? -max : result;
@@ -292,6 +303,10 @@ public:
 		// breaking mode
 		m_shooter_star->SetNeutralMode(NeutralMode::Coast);
 		m_shooter_port->SetNeutralMode(NeutralMode::Coast);
+
+		// field rel
+		m_timer.Reset();
+		m_timer.Start();
 
         /* feedback sensor */
 		m_shooter_star->ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, kTimeoutMs);
@@ -384,6 +399,10 @@ public:
 			DriverStation::ReportError(p_err_msg);
 		}
 
+		// for vision
+		m_visionSubsystem = new VisionSubsystem();
+
+
 		/* this is used to tune the PID numbers with shuffleboard */
 		frc::SmartDashboard::PutNumber("kP", kPtunedPixy);
 		frc::SmartDashboard::PutNumber("kI", kItunedPixy);
@@ -419,6 +438,27 @@ public:
 		frc::SmartDashboard::PutData("Auto Wait?", &m_chooser_options_wait);
 	}
 
+	void RobotPeriodic() {
+		m_visionSubsystem->periodic();
+	}
+
+	// for field relative
+	int quadrant (double a) { // quadrant of angle, I, II, III, or IV
+		assert (a >= 0 && a <= 360);
+		int result = 0;
+		if (a <= 90) result = 1;
+		else if (a <= 180) result = 2;
+		else if (a <= 270) result = 3;
+		else result = 4;
+		return result;
+	}
+	bool isInDiscontinuityZone (double curr, double target) {
+		// heading is close to 0 and target is close to heading
+		return ( (curr < kHeadingDiscontinuityZone || curr > 360 - kHeadingDiscontinuityZone)
+			&& abs(curr - target) < kHeadingDiscontinuityZone );
+			// && (target < kTargetDiscontinuityZone || target > 360 - kTargetDiscontinuityZone) ) 
+	}
+
 	void MoveTurretToManualPosition (long target_position) {
 		m_turret->Set(ControlMode::Position, target_position);
 		if (abs(target_position - m_turret->GetSelectedSensorPosition(0)) < kTurretTolerance) {
@@ -429,7 +469,7 @@ public:
 	void MoveTurretToStartingPosition() {
 
 		bool turret_on_hall = false;
-		// frc::SmartDashboard::PutString("turr state", "initial move");
+		frc::SmartDashboard::PutString("turr state", "initial move");
 
 		// code from WPI to set starting position
 		// int absolutePosition = m_turret->GetSelectedSensorPosition(0) & 0xFFF; /* mask out the bottom12 bits, we don't care about the wrap arounds */
@@ -449,13 +489,13 @@ public:
 			turret_on_hall = !hall_effect.Get();
 			if (turret_on_hall) { 
 				m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
-				// frc::SmartDashboard::PutString("turr state", "found hall");
+				frc::SmartDashboard::PutString("turr state", "found hall");
 				break; // exit loop
 			}
 			Wait(0.1);
 		} // while
 		m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
-		// frc::SmartDashboard::PutString("turr state", "while done");
+		frc::SmartDashboard::PutString("turr state", "while done");
 
 		turret_on_hall = !hall_effect.Get();
 		if (!turret_on_hall) {
@@ -465,7 +505,7 @@ public:
 				turret_on_hall = !hall_effect.Get();
 				if (turret_on_hall) { 
 					m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
-					// frc::SmartDashboard::PutString("turr state", "found hall");
+					frc::SmartDashboard::PutString("turr state", "found hall");
 					break; // exit loop
 				}
 				Wait(0.1);
@@ -487,7 +527,7 @@ public:
 		}
 	}
 
-	void ChasePowerCells() {
+	void ChasePowerCellsByPixy() {
 		bool ball_seen = m_pixytable->GetNumber("STATUS", -1);
 		if (ball_seen == 1) {
 			double pixy_X = 167 - m_pixytable->GetNumber("X",0.0);
@@ -505,6 +545,22 @@ public:
 			frc::SmartDashboard::PutString("Balls", "no");
 		} else { // error of some kind
 			frc::SmartDashboard::PutString("Balls", "error");
+		}
+	}
+
+	void ChasePowerCellsByCoral() {
+		frc::SmartDashboard::PutNumber("Power Cells", m_visionSubsystem->getTotalBalls());
+		m_visionSubsystem->updateClosestBall();
+		frc::SmartDashboard::PutNumber("ball dist", m_visionSubsystem->distanceClosestBall);
+		frc::SmartDashboard::PutNumber("ball angle", m_visionSubsystem->angleClosestBall);
+
+		bool ball_seen = m_visionSubsystem->distanceClosestBall > 0.0;
+		if (ball_seen) {
+			double diff_speed = m_pidController_pixycam->Calculate(m_visionSubsystem->angleClosestBall);
+
+			// move robot
+			frc::SmartDashboard::PutNumber("Ball chase", diff_speed);
+			m_robotDrive.TankDrive(-diff_speed+kChaseBallSpeed, diff_speed+kChaseBallSpeed, false);
 		}
 	}
 
@@ -801,7 +857,7 @@ public:
 		Right Stick	Field relative arcade	
 		D Pad	Rotate to compass pts	
 		Button 1	Reset Yaw / (color)	
-		Button 2	(color)
+		Button 2	Break / (color)
 		Button 3	Spin control panel / (color)	
 		Button 4	Auto chase balls / (color)
 		Button 5	Spin to color	
@@ -812,24 +868,35 @@ public:
 		double field_rel_X = m_stick->GetRawAxis(2);  // field relative
 		double field_rel_Y = -m_stick->GetRawAxis(3);
 		double field_rel_R = sqrt(field_rel_X*field_rel_X + field_rel_Y*field_rel_Y);
+
 		bool rotateToAngle = false;
+		double targetAngle = 0.0;
 		if ( m_stick->GetPOV() == 0) {
-			m_pidController_gyro->SetSetpoint(0.0f);
+			targetAngle= 0.0f;
 			rotateToAngle = true;
 		} else if ( m_stick->GetPOV() == 90) {
-			m_pidController_gyro->SetSetpoint(90.0f);
+			targetAngle = 90.0f;
 			rotateToAngle = true;
 		} else if ( m_stick->GetPOV() == 180) {
-			m_pidController_gyro->SetSetpoint(179.9f);
+			targetAngle = 179.9f;
 			rotateToAngle = true;
 		} else if ( m_stick->GetPOV() == 270) {
-			m_pidController_gyro->SetSetpoint(-90.0f);
+			targetAngle = 270.0f;
 			rotateToAngle = true;
 		}
+		if (field_rel_R > kGamepadDeadZone) {
+			rotateToAngle = true;
+			// was angle = copysign(angle, field_rel_X); // make angle negative if X is negative
+			// a little trig to convert joystick to angle
+			targetAngle =  90 - ConvertRadsToDegrees(atan(field_rel_Y/abs(field_rel_X)));
+			if (field_rel_X < 0) {targetAngle = 360 - targetAngle;}  // shift from -180>180 to 0>360
+		}
+
 		bool reset_yaw_button_pressed = false;  // reset gyro angle
 		bool chase_cells_button = false;
 		bool spin_control_panel_button = false;
 		bool spin_to_color_pressed = false;
+		bool break_button_pressed = false;
 		frc::Color spin_to_color = kNoColor;
 		if (m_stick->GetRawButton(5)) { // spin to color
 			if (m_stick->GetRawButton(1)) { // blue
@@ -850,6 +917,7 @@ public:
 			reset_yaw_button_pressed = m_stick->GetRawButton(1);  // reset gyro angle
 			chase_cells_button = m_stick->GetRawButton(4);
 			spin_control_panel_button = m_stick->GetRawButton(3);
+			break_button_pressed = m_stick->GetRawButton(2);
 		}
 		
 		bool high_gear_button_presssed = m_stick->GetRawButton(7);
@@ -904,34 +972,6 @@ public:
 			ahrs->ZeroYaw();
 		}
 
-		// shooter
-		// if (shooter_R > 0.1) {
-		// double targetVelocity_UnitsPer100ms = -1 * shooter_R * 1500.0 * 2048 / 600;
-		// 	m_shooter_star->Set(ControlMode::Velocity, targetVelocity_UnitsPer100ms);
-		// //frc::SmartDashboard::PutNumber("shooter target", targetVelocity_UnitsPer100ms);
-		// } else {
-		// 	m_shooter_star->Set(ControlMode::Velocity, 0.0);
-		// }
-
-		// power conveyer, which does not have encoders
-		//frc::SmartDashboard::PutNumber("conveyer power", conveyer_Y);
-		
-
-		if (abs(field_rel_X) > kGamepadDeadZone || abs(m_stick->GetRawAxis(3)) > kGamepadDeadZone) {
-			rotateToAngle = true;
-			double angle =  90 - ConvertRadsToDegrees(atan(field_rel_Y/abs(field_rel_X)));
-			angle = copysign(angle, field_rel_X); // make angle negative if X is negative
-			m_pidController_gyro->SetSetpoint(angle);
-		}
-		//frc::SmartDashboard::PutNumber ("Angle set point", m_pidController_gyro->GetSetpoint());
-		//frc::SmartDashboard::PutNumber ("X", field_rel_X);
-		//frc::SmartDashboard::PutNumber ("Y", field_rel_Y);
-
-		rotateToAngleRate = m_pidController_gyro->Calculate(ahrs->GetAngle());
-		// trim the speed so it's not too fast
-		rotateToAngleRate = TrimSpeed(rotateToAngleRate, kMaxRotateRate);
-
-
 		// if (slow_gear_button_pressed) {speed_factor = kSlowSpeedFactor;}
 		if (high_gear_button_presssed) {speed_factor = kFastSpeedFactor;}
 		else {speed_factor = kSlowSpeedFactor;}
@@ -941,17 +981,41 @@ public:
 			if (rotateToAngle) {
 				// MJS: since it's diff drive instead of mecanum drive, use tank method for rotation
 				//frc::SmartDashboard::PutNumber("rotateToAngleRate", rotateToAngleRate);
+
+				double currAngle = (int)ahrs->GetAngle() % 360;  // angle accumulates past 360, so modulus
+				if (currAngle < 0) {currAngle = 360 + currAngle;} // shift from -360>360 to 0>360
+				frc::SmartDashboard::PutNumber("Heading", currAngle);
+
+				// use pid for motor speed, unless in "discontinuity zone" near 0
+				if (isInDiscontinuityZone(currAngle, targetAngle)) {
+					rotateToAngleRate = 0.0;   // avoid bouncing back and forth as heading flips between 1 and 355
+				} else {
+					rotateToAngleRate = m_pidController_gyro->Calculate(ahrs->GetAngle());
+				}
+				// trim the speed so it's not too fast
+				rotateToAngleRate = TrimSpeed(rotateToAngleRate, kMaxRotateRate);
+				// if heading is quadrant I and target is IV, or vice versa, flip motor direction
+				if ( (quadrant(currAngle) == 1 && quadrant(targetAngle) == 4) 
+					|| (quadrant(currAngle) == 4 && quadrant(targetAngle) == 1)) {
+					rotateToAngleRate = -rotateToAngleRate;
+				} else if (abs(currAngle - targetAngle) > 180) {
+					// if delta angle > 180, flip motor direction so we take shorter route
+					rotateToAngleRate = -rotateToAngleRate;
+				}
+
 				double left_power = rotateToAngleRate;
 				double right_power = -rotateToAngleRate;
-				if (abs(kMaxRotateRate - abs(rotateToAngleRate)) / kMaxRotateRate > 0.7) { 
+				if (abs(kMaxRotateRate - abs(rotateToAngleRate)) / kMaxRotateRate > 0.4) { 
+					m_field_rel_timer = m_timer.Get(); // once decide it's ok to move forward, don't stutter
+				}
+				if (m_timer.Get() < m_field_rel_timer + kFieldRelDriveSmoothTime) { 
 					// add forard driving to rotation, to get field relative driving
 					double addition = field_rel_R * speed_factor;
 					left_power += addition;
 					right_power += addition;
 				}
 				m_robotDrive.TankDrive(left_power, right_power, false);
-				// frc::SmartDashboard::PutNumber ("Left power", left_power);
-				// frc::SmartDashboard::PutNumber ("Right power", right_power);
+
 			} else if (spin_control_panel_button || spin_to_color_pressed) {
 				// let cp program control wheels
 			} else {
@@ -1003,7 +1067,7 @@ public:
 
 		// auto-chase balls
 		if (chase_cells_button) {
-			ChasePowerCells();
+			ChasePowerCellsByCoral();
 		}
 		
 		if (turret_manual_position != 0) {
