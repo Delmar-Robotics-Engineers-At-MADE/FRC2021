@@ -43,7 +43,8 @@ using namespace frc;
 	const static double kMinTargetAreaPercent = 0.1;
 	const static double kDriveAgainstCPSpeed = 0.25;
 
-	const static double kConveyerSpeed = 0.75;
+	const static double kConveyerSpeed = 0.95;
+	//const static double kFirstConveyerSpeed = 0.95;
 	const static double kIntakeSpeed = 0.7;
 	const static double kIntakeDelayArrival = 1;
 	const static double kIntakeDelayGap = 0.05;
@@ -260,7 +261,7 @@ public:
 		m_rightrear.ConfigFactoryDefault();
 
 		// braking mode
-		m_leftfront.SetNeutralMode(NeutralMode::Coast);
+		m_leftfront.SetNeutralMode(NeutralMode::Coast);  // was brake in 2020
 		m_leftrear.SetNeutralMode(NeutralMode::Coast);
 		m_rightfront.SetNeutralMode(NeutralMode::Coast);
 		m_rightrear.SetNeutralMode(NeutralMode::Coast);
