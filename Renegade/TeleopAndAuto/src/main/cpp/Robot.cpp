@@ -227,6 +227,7 @@ class Robot: public TimedRobot {
 	std::string m_autoSelected_options_speed;
 	std::string m_autoSelected_options_wait;
 	bool m_do_once_inited = false;
+	bool m_need_to_reset_coast = false;
 
 	// vision and field relative
 	double m_field_rel_timer;
@@ -258,11 +259,11 @@ public:
 		m_rightfront.ConfigFactoryDefault();
 		m_rightrear.ConfigFactoryDefault();
 
-		// breaking mode
-		m_leftfront.SetNeutralMode(NeutralMode::Brake);
-		m_leftrear.SetNeutralMode(NeutralMode::Brake);
-		m_rightfront.SetNeutralMode(NeutralMode::Brake);
-		m_rightrear.SetNeutralMode(NeutralMode::Brake);
+		// braking mode
+		m_leftfront.SetNeutralMode(NeutralMode::Coast);
+		m_leftrear.SetNeutralMode(NeutralMode::Coast);
+		m_rightfront.SetNeutralMode(NeutralMode::Coast);
+		m_rightrear.SetNeutralMode(NeutralMode::Coast);
 
         /* feedback sensor */
 		m_leftfront.ConfigSelectedFeedbackSensor(FeedbackDevice::CTRE_MagEncoder_Relative, 0, kTimeoutMs);
@@ -300,7 +301,7 @@ public:
     	m_shooter_star->SetInverted(true);
     	m_shooter_port->SetInverted(false);
 		
-		// breaking mode
+		// braking mode
 		m_shooter_star->SetNeutralMode(NeutralMode::Coast);
 		m_shooter_port->SetNeutralMode(NeutralMode::Coast);
 
@@ -857,7 +858,7 @@ public:
 		Right Stick	Field relative arcade	
 		D Pad	Rotate to compass pts	
 		Button 1	Reset Yaw / (color)	
-		Button 2	Break / (color)
+		Button 2	Brake / (color)
 		Button 3	Spin control panel / (color)	
 		Button 4	Auto chase balls / (color)
 		Button 5	Spin to color	
@@ -896,7 +897,7 @@ public:
 		bool chase_cells_button = false;
 		bool spin_control_panel_button = false;
 		bool spin_to_color_pressed = false;
-		bool break_button_pressed = false;
+		bool brake_button_pressed = false;
 		frc::Color spin_to_color = kNoColor;
 		if (m_stick->GetRawButton(5)) { // spin to color
 			if (m_stick->GetRawButton(1)) { // blue
@@ -917,7 +918,7 @@ public:
 			reset_yaw_button_pressed = m_stick->GetRawButton(1);  // reset gyro angle
 			chase_cells_button = m_stick->GetRawButton(4);
 			spin_control_panel_button = m_stick->GetRawButton(3);
-			break_button_pressed = m_stick->GetRawButton(2);
+			brake_button_pressed = m_stick->GetRawButton(2);
 		}
 		
 		bool high_gear_button_presssed = m_stick->GetRawButton(7);
@@ -972,13 +973,28 @@ public:
 			ahrs->ZeroYaw();
 		}
 
+		if (m_need_to_reset_coast && !brake_button_pressed) { // no longer braking; go back to coasting
+			m_leftfront.SetNeutralMode(NeutralMode::Coast);
+			m_leftrear.SetNeutralMode(NeutralMode::Coast);
+			m_rightfront.SetNeutralMode(NeutralMode::Coast);
+			m_rightrear.SetNeutralMode(NeutralMode::Coast);			
+			m_need_to_reset_coast = false;
+		}
+
 		// if (slow_gear_button_pressed) {speed_factor = kSlowSpeedFactor;}
 		if (high_gear_button_presssed) {speed_factor = kFastSpeedFactor;}
 		else {speed_factor = kSlowSpeedFactor;}
 		// frc::SmartDashboard::PutNumber ("Rotate ratio", abs(kMaxRotateRate - abs(rotateToAngleRate)) / kMaxRotateRate);
 
 		try {
-			if (rotateToAngle) {
+			if (brake_button_pressed) {
+				m_leftfront.SetNeutralMode(NeutralMode::Brake);
+				m_leftrear.SetNeutralMode(NeutralMode::Brake);
+				m_rightfront.SetNeutralMode(NeutralMode::Brake);
+				m_rightrear.SetNeutralMode(NeutralMode::Brake);
+				m_robotDrive.TankDrive(0.0, 0.0, false);
+				m_need_to_reset_coast = true;
+			} else if (rotateToAngle) {
 				// MJS: since it's diff drive instead of mecanum drive, use tank method for rotation
 				//frc::SmartDashboard::PutNumber("rotateToAngleRate", rotateToAngleRate);
 
