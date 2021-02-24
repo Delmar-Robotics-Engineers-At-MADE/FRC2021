@@ -52,6 +52,7 @@ using namespace frc;
 	const static double kIdleShooterSpeed = 6000;
 	const static double kMaxShooterSpeedError = 3500;  // move conveyer automatically when speed is good
 	const static double kInitialShooterSlope = 300;
+	const static double kInitialShooterIntercept = 12696.1;
 
 	const static double kMinColorConfidence = 0.85;
 	const static double kControlPanelSpeed = 0.8;
@@ -126,6 +127,7 @@ class Robot: public TimedRobot {
 	TalonFX * m_shooter_star = new TalonFX(15); // 15 is starboard, 0 is port
 	TalonFX * m_shooter_port = new TalonFX(0); // 15 is starboard, 0 is port
 	double m_shooter_slope = 0.0;
+	double m_shooter_y_intercept = 0.0;
 	//Joystick * _joy = new Joystick(0);
 	// std::string _sb;
 	// int _loops = 0;
@@ -411,6 +413,7 @@ public:
 		frc::SmartDashboard::PutNumber("kD", kDtunedPixy);
 		
 		frc::SmartDashboard::PutNumber("shoot slope", kInitialShooterSlope);
+		frc::SmartDashboard::PutNumber("shoot intercept", kInitialShooterIntercept);
 		
 		// control panel colors
 		m_colorMatcher.AddColorMatch(kBlueTarget);
@@ -640,6 +643,7 @@ public:
 		// bring up shooter
 		m_shooter_star->Set(ControlMode::Velocity, -kIdleShooterSpeed);
 		m_shooter_slope = frc::SmartDashboard::GetNumber("shoot slope", kInitialShooterSlope);
+		m_shooter_y_intercept = frc::SmartDashboard::GetNumber("shoot intercpt", kInitialShooterIntercept);
 
 		// position ponytail up
 		m_ponytail_solenoid.Set(frc::DoubleSolenoid::kForward);
@@ -824,7 +828,8 @@ public:
 			if (targetOffsetAngle_Vertical < -18) {
 				shooter_speed_in_units = 23000;  // max out shooter if far away
 			} else {
-				shooter_speed_in_units = 12696.1 - m_shooter_slope * targetOffsetAngle_Vertical; // originally 317.502
+				// 2020 Y intercept was 12696.1 
+				shooter_speed_in_units = m_shooter_y_intercept - m_shooter_slope * targetOffsetAngle_Vertical; // originally 317.502
 			}
 			if (manual_boost) {shooter_speed_in_units *= 1.1;}
 			else if (manual_deboost) {shooter_speed_in_units *= 0.9;}

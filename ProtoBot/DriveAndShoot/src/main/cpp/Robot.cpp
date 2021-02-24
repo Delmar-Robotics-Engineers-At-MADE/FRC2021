@@ -3,7 +3,7 @@
 #include <frc/smartdashboard/SmartDashboard.h>
 
 const static double kToleranceDegrees = 2.0f;
-const static double kMaxRotateRate = 0.5;
+const static double kMaxRotateRate = 0.3;
 const static double kGamepadDeadZone = 0.1;
 const static double kSlowSpeedFactor = 0.65;
 const static double kFastSpeedFactor = 0.9;
@@ -13,7 +13,7 @@ const static double kItuned = 0.0015;
 const static double kDtuned = 0.001;
 
 const static double kFieldRelDriveSmoothTime = 0.4;
-const static double kHeadingDiscontinuityZone = 3; // degrees either side of 0
+const static double kHeadingDiscontinuityZone = 6; // degrees either side of 0
 const static double kTargetDiscontinuityZone = 15; // degrees either side of 0
 //const static double kHeadingDiscontinuityZone2 = 360 - kHeadingDiscontinuityZone1;
 //const static double kTargetDiscontinuityZone2 = 360 - kTargetDiscontinuityZone1;
@@ -240,7 +240,7 @@ void Robot::TeleopPeriodic() {
       }
       if (m_timer.Get() < m_field_rel_timer + kFieldRelDriveSmoothTime) { 
         // add forard driving to rotation, to get field relative driving
-        double addition = field_rel_R * speed_factor;
+        double addition = field_rel_R * speed_factor / 2;
         left_power += addition;
         right_power += addition;
       }
