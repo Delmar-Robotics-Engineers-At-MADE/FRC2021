@@ -36,7 +36,7 @@ using namespace frc;
     const static int k_joystick_copilot = 1;
 	
 	const static double kToleranceDegrees = 2.0f;
-	const static double kMaxRotateRate = 1.0;
+	const static double kMaxRotateRate = 0.4;
 	const static double kGamepadDeadZone = 0.15;
 	const static double kSlowSpeedFactor = 0.7;
 	const static double kFastSpeedFactor = 0.9;
@@ -50,9 +50,10 @@ using namespace frc;
 	const static double kIntakeDelayGap = 0.05;
 
 	const static double kIdleShooterSpeed = 6000;
+	const static double kCloseRangeShooterSpeed = 12500;
 	const static double kMaxShooterSpeedError = 3500;  // move conveyer automatically when speed is good
-	const static double kInitialShooterSlope = 300;
-	const static double kInitialShooterIntercept = 12696.1;
+	const static double kInitialShooterSlope = 250; // was 300 in 2020
+	const static double kInitialShooterIntercept = 13000; // was 12696.1 in 2020
 
 	const static double kMinColorConfidence = 0.85;
 	const static double kControlPanelSpeed = 0.8;
@@ -131,6 +132,7 @@ class Robot: public TimedRobot {
 	//Joystick * _joy = new Joystick(0);
 	// std::string _sb;
 	// int _loops = 0;
+	double m_IdleShooterSpeed = kIdleShooterSpeed;
 
 	// drive motors
     WPI_TalonSRX m_leftfront{1};
@@ -307,10 +309,6 @@ public:
 		// braking mode
 		m_shooter_star->SetNeutralMode(NeutralMode::Coast);
 		m_shooter_port->SetNeutralMode(NeutralMode::Coast);
-
-		// field rel
-		m_timer.Reset();
-		m_timer.Start();
 
         /* feedback sensor */
 		m_shooter_star->ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, kTimeoutMs);
@@ -556,12 +554,14 @@ public:
 	void ChasePowerCellsByCoral() {
 		frc::SmartDashboard::PutNumber("Power Cells", m_visionSubsystem->getTotalBalls());
 		m_visionSubsystem->updateClosestBall();
+		double ballAngle = ConvertRadsToDegrees(m_visionSubsystem->angleClosestBall);
 		frc::SmartDashboard::PutNumber("ball dist", m_visionSubsystem->distanceClosestBall);
-		frc::SmartDashboard::PutNumber("ball angle", m_visionSubsystem->angleClosestBall);
+		frc::SmartDashboard::PutNumber("ball angle", ballAngle);
 
 		bool ball_seen = m_visionSubsystem->distanceClosestBall > 0.0;
 		if (ball_seen) {
-			double diff_speed = m_pidController_pixycam->Calculate(m_visionSubsystem->angleClosestBall);
+			// note: pid set point is always 0
+			double diff_speed = m_pidController_pixycam->Calculate(ballAngle);
 
 			// move robot
 			frc::SmartDashboard::PutNumber("Ball chase", diff_speed);
@@ -641,12 +641,16 @@ public:
 	void RepeatableInit() {
 
 		// bring up shooter
-		m_shooter_star->Set(ControlMode::Velocity, -kIdleShooterSpeed);
+		m_shooter_star->Set(ControlMode::Velocity, -m_IdleShooterSpeed);
 		m_shooter_slope = frc::SmartDashboard::GetNumber("shoot slope", kInitialShooterSlope);
 		m_shooter_y_intercept = frc::SmartDashboard::GetNumber("shoot intercpt", kInitialShooterIntercept);
 
 		// position ponytail up
 		m_ponytail_solenoid.Set(frc::DoubleSolenoid::kForward);
+
+		// for smoothing field rel driving
+		m_timer.Reset();
+		m_timer.Start();
 	}
 
 	std::string ColorToString (frc::Color color) {
@@ -677,7 +681,7 @@ public:
 	void SpinThreeTimes() {
 		std::string colorString;
 		double confidence = 0.0;
-		frc::SmartDashboard::PutNumber("CP COMPLETE", false);
+		frc::SmartDashboard::PutNumber("CP COMPLETE", false); // CP = Control Panel
 
 		m_robotDrive.TankDrive(-kDriveAgainstCPSpeed, -kDriveAgainstCPSpeed); // press against control panel
 		MoveTurretToManualPosition(kTurretUP); // hold turret in position
@@ -823,10 +827,13 @@ public:
 		double shooter_speed_in_units = kIdleShooterSpeed;
 		if (targetSeen != 0.0) {
 			// frc::SmartDashboard::PutString("turr mode", "tracking");
+			frc::SmartDashboard::PutNumber("targ angle", targetOffsetAngle_Vertical);
 			bool limelight_on_target = TrackTargetWithTurret(targetOffsetAngle_Horizontal);
 
 			if (targetOffsetAngle_Vertical < -18) {
 				shooter_speed_in_units = 23000;  // max out shooter if far away
+			} else if (targetOffsetAngle_Vertical >= 5.0) { // boost if really close to target
+				shooter_speed_in_units = kCloseRangeShooterSpeed;
 			} else {
 				// 2020 Y intercept was 12696.1 
 				shooter_speed_in_units = m_shooter_y_intercept - m_shooter_slope * targetOffsetAngle_Vertical; // originally 317.502
@@ -1002,11 +1009,12 @@ public:
 				m_need_to_reset_coast = true;
 			} else if (rotateToAngle) {
 				// MJS: since it's diff drive instead of mecanum drive, use tank method for rotation
-				//frc::SmartDashboard::PutNumber("rotateToAngleRate", rotateToAngleRate);
+				m_pidController_gyro->SetSetpoint(targetAngle);
 
 				double currAngle = (int)ahrs->GetAngle() % 360;  // angle accumulates past 360, so modulus
 				if (currAngle < 0) {currAngle = 360 + currAngle;} // shift from -360>360 to 0>360
-				frc::SmartDashboard::PutNumber("Heading", currAngle);
+				// frc::SmartDashboard::PutNumber("FR Heading", currAngle); // FR = Field Relative
+				// frc::SmartDashboard::PutNumber("FR Target", targetAngle);
 
 				// use pid for motor speed, unless in "discontinuity zone" near 0
 				if (isInDiscontinuityZone(currAngle, targetAngle)) {
@@ -1030,9 +1038,11 @@ public:
 				if (abs(kMaxRotateRate - abs(rotateToAngleRate)) / kMaxRotateRate > 0.4) { 
 					m_field_rel_timer = m_timer.Get(); // once decide it's ok to move forward, don't stutter
 				}
+				// frc::SmartDashboard::PutNumber("FR Timer", m_field_rel_timer);
+				// frc::SmartDashboard::PutNumber("FR Time", m_timer.Get());
 				if (m_timer.Get() < m_field_rel_timer + kFieldRelDriveSmoothTime) { 
 					// add forard driving to rotation, to get field relative driving
-					double addition = field_rel_R * speed_factor;
+					double addition = field_rel_R * speed_factor / 2;
 					left_power += addition;
 					right_power += addition;
 				}
@@ -1064,7 +1074,7 @@ public:
 			    boost_shooter_up_button, boost_shooter_down_button);
 		} else {
 			m_limetable->PutNumber("ledMode",1.0); // LED off
-			m_shooter_star->Set(ControlMode::Velocity, -kIdleShooterSpeed);
+			m_shooter_star->Set(ControlMode::Velocity, -m_IdleShooterSpeed);
 		}
 		OperateConveyer(conveyer_in_button, conveyer_out_button, conveyer_speed);
 
@@ -1089,7 +1099,11 @@ public:
 
 		// auto-chase balls
 		if (chase_cells_button) {
+			// kill shooter because vibration makes camera image blurry
+			m_IdleShooterSpeed = -0.0;
 			ChasePowerCellsByCoral();
+		} else {
+			m_IdleShooterSpeed = kIdleShooterSpeed; // when not chasing balls, idle normally
 		}
 		
 		if (turret_manual_position != 0) {
@@ -1165,7 +1179,7 @@ public:
 				OperateShooter(manual_conveyer_ok, conveyer_speed, false, false);
 				OperateConveyer (false, false, conveyer_speed);
 			} else { // after 6 seconds
-				m_shooter_star->Set(ControlMode::Velocity, -kIdleShooterSpeed);
+				m_shooter_star->Set(ControlMode::Velocity, -m_IdleShooterSpeed);
 				m_vert_conveyer.Set(0);
 				double motor_speed = 0.0;
 				if (m_autoSelected_options_dir == kAutoOptionForward) {
