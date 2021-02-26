@@ -50,7 +50,8 @@ using namespace frc;
 	const static double kIntakeDelayGap = 0.05;
 
 	const static double kIdleShooterSpeed = 6000;
-	const static double kCloseRangeShooterSpeed = 12500;
+	const static double kCloseRangeShooterSpeed = 14000;
+	const static double kCloseRangeTargetAngle = 5;
 	const static double kMaxShooterSpeedError = 3500;  // move conveyer automatically when speed is good
 	const static double kInitialShooterSlope = 250; // was 300 in 2020
 	const static double kInitialShooterIntercept = 13000; // was 12696.1 in 2020
@@ -71,7 +72,7 @@ using namespace frc;
 	const static long kLimelightTolerance = 5; // degrees
 
 	const static long kPixyTolerance = 5; // X values
-	const static double kChaseBallSpeed = 0.2;
+	const static double kChaseBallSpeed = 0.3;
 
 	const static double kAutoDriveSpeed = 0.5;
 	const static long kAutoDriveDistance = 6000;
@@ -263,12 +264,6 @@ public:
 		m_leftrear.ConfigFactoryDefault();
 		m_rightfront.ConfigFactoryDefault();
 		m_rightrear.ConfigFactoryDefault();
-
-		// braking mode
-		m_leftfront.SetNeutralMode(NeutralMode::Coast);  // was brake in 2020
-		m_leftrear.SetNeutralMode(NeutralMode::Coast);
-		m_rightfront.SetNeutralMode(NeutralMode::Coast);
-		m_rightrear.SetNeutralMode(NeutralMode::Coast);
 
         /* feedback sensor */
 		m_leftfront.ConfigSelectedFeedbackSensor(FeedbackDevice::CTRE_MagEncoder_Relative, 0, kTimeoutMs);
@@ -565,7 +560,7 @@ public:
 
 			// move robot
 			frc::SmartDashboard::PutNumber("Ball chase", diff_speed);
-			m_robotDrive.TankDrive(-diff_speed+kChaseBallSpeed, diff_speed+kChaseBallSpeed, false);
+			m_robotDrive.TankDrive(diff_speed+kChaseBallSpeed, -diff_speed+kChaseBallSpeed, false);
 		}
 	}
 
@@ -600,6 +595,12 @@ public:
 		m_starting_color = kNoColor;
 		m_half_rotation_count = 0;
 		m_intake_state = kBreachEmpty;
+		
+		// braking mode
+		m_leftfront.SetNeutralMode(NeutralMode::Coast);  // was brake in 2020
+		m_leftrear.SetNeutralMode(NeutralMode::Coast);
+		m_rightfront.SetNeutralMode(NeutralMode::Coast);
+		m_rightrear.SetNeutralMode(NeutralMode::Coast);
 	}
 
 	void DoOnceInit() {
@@ -832,7 +833,7 @@ public:
 
 			if (targetOffsetAngle_Vertical < -18) {
 				shooter_speed_in_units = 23000;  // max out shooter if far away
-			} else if (targetOffsetAngle_Vertical >= 5.0) { // boost if really close to target
+			} else if (targetOffsetAngle_Vertical >= kCloseRangeTargetAngle) { // boost if really close to target
 				shooter_speed_in_units = kCloseRangeShooterSpeed;
 			} else {
 				// 2020 Y intercept was 12696.1 
@@ -1078,7 +1079,7 @@ public:
 		}
 		OperateConveyer(conveyer_in_button, conveyer_out_button, conveyer_speed);
 
-		if (auto_intake_button) {
+		if (auto_intake_button || chase_cells_button) {
 			// bring balls in and index using photo eye
 			AutoIntakeBalls();
 		} else { // enable manual control of intake
@@ -1134,6 +1135,12 @@ public:
 		m_rightfront.SetSelectedSensorPosition(0, kPIDLoopIdx, kTimeoutMs);
 		m_timer.Reset();
 		m_timer.Start();
+
+		// braking mode
+		m_leftfront.SetNeutralMode(NeutralMode::Brake);  // need brake when moving
+		m_leftrear.SetNeutralMode(NeutralMode::Brake);
+		m_rightfront.SetNeutralMode(NeutralMode::Brake);
+		m_rightrear.SetNeutralMode(NeutralMode::Brake);
 	}
 
 	void AutonomousPeriodic() {
