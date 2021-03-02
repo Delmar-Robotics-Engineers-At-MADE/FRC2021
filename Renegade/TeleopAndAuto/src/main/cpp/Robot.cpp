@@ -546,22 +546,30 @@ public:
 		}
 	}
 
-	void ChasePowerCellsByCoral() {
-		frc::SmartDashboard::PutNumber("Power Cells", m_visionSubsystem->getTotalBalls());
+	// returns angle to unseen second ball, in degrees
+	double ChasePowerCellsByCoral() {
+		frc::SmartDashboard::PutNumber("V ball count", m_visionSubsystem->getTotalBalls());
 		m_visionSubsystem->updateClosestBall();
 		double ballAngle = ConvertRadsToDegrees(m_visionSubsystem->angleClosestBall);
-		frc::SmartDashboard::PutNumber("ball dist", m_visionSubsystem->distanceClosestBall);
-		frc::SmartDashboard::PutNumber("ball angle", ballAngle);
+		double ball2Angle = ConvertRadsToDegrees(m_visionSubsystem->angleSecondClosestBall);
+		frc::SmartDashboard::PutNumber("V ball dist", m_visionSubsystem->distanceClosestBall);
+		frc::SmartDashboard::PutNumber("V ball angle", ballAngle);
+		frc::SmartDashboard::PutNumber("V ball 2 angle", ball2Angle);
+		double result = 0.0; // return angle to second ball if we need to turn to it
 
 		bool ball_seen = m_visionSubsystem->distanceClosestBall > 0.0;
+		bool second_ball_seen = m_visionSubsystem->distanceSecondClosestBall > 0.0;
 		if (ball_seen) {
 			// note: pid set point is always 0
 			double diff_speed = m_pidController_pixycam->Calculate(ballAngle);
 
 			// move robot
-			frc::SmartDashboard::PutNumber("Ball chase", diff_speed);
+			// frc::SmartDashboard::PutNumber("Ball chase", diff_speed);
 			m_robotDrive.TankDrive(diff_speed+kChaseBallSpeed, -diff_speed+kChaseBallSpeed, false);
+		} else if (second_ball_seen) {
+			result = ball2Angle;
 		}
+		return result;
 	}
 
 	bool TrackTargetWithTurret(double targetOffsetAngle) {
@@ -1000,6 +1008,21 @@ public:
 		else {speed_factor = kSlowSpeedFactor;}
 		// frc::SmartDashboard::PutNumber ("Rotate ratio", abs(kMaxRotateRate - abs(rotateToAngleRate)) / kMaxRotateRate);
 
+		// auto-chase balls
+		double angleToSecondBall = 0.0;
+		if (chase_cells_button) {
+			// kill shooter because vibration makes camera image blurry
+			m_IdleShooterSpeed = kIdleShooterSpeed / 5;
+			angleToSecondBall = ChasePowerCellsByCoral();
+		} else {
+			m_IdleShooterSpeed = kIdleShooterSpeed; // when not chasing balls, idle normally
+		}
+		if (angleToSecondBall > 0.0) {
+			rotateToAngle = true;
+			targetAngle = ConvertRadsToDegrees(angleToSecondBall);
+		}
+
+		// rotation stuff
 		try {
 			if (brake_button_pressed) {
 				m_leftfront.SetNeutralMode(NeutralMode::Brake);
@@ -1079,7 +1102,7 @@ public:
 		}
 		OperateConveyer(conveyer_in_button, conveyer_out_button, conveyer_speed);
 
-		if (auto_intake_button || chase_cells_button) {
+		if (auto_intake_button /*|| chase_cells_button*/) { // for now, don't auto-intake when chasing; let co-pilot do it
 			// bring balls in and index using photo eye
 			AutoIntakeBalls();
 		} else { // enable manual control of intake
@@ -1097,15 +1120,6 @@ public:
 			m_need_to_reset_spinner = false;
 		}
 		// frc::SmartDashboard::PutNumber("wheel state", m_wheel_state);
-
-		// auto-chase balls
-		if (chase_cells_button) {
-			// kill shooter because vibration makes camera image blurry
-			m_IdleShooterSpeed = -0.0;
-			ChasePowerCellsByCoral();
-		} else {
-			m_IdleShooterSpeed = kIdleShooterSpeed; // when not chasing balls, idle normally
-		}
 		
 		if (turret_manual_position != 0) {
 			m_need_to_reset_manual_turret_move = true;
