@@ -15,6 +15,9 @@ private:
 public:
     double distanceClosestBall = 0.0;
     double angleClosestBall = 0.0;
+    double distanceSecondClosestBall = 0.0;
+    double angleSecondClosestBall = 0.0;
+    double turnToNextBallAngle = 0.0;
 
     class Gamepiece{
     public:
@@ -52,4 +55,5 @@ public:
     virtual std::vector<Ball*> getBalls();
     virtual void disposeBalls(std::vector<Ball*> balls);
     virtual void updateClosestBall();
+    virtual void clearSecondClosestBall();
 };

@@ -98,6 +98,23 @@ void VisionSubsystem::disposeBalls(std::vector<VisionSubsystem::Ball*> balls)
     }
 }
 
+double ComputeTurnAngle (double a, double b, double theta) {
+    /*    c
+       O------O  balls      \ angle to turn
+        \bta /               \---------------------0
+       a \th/ b               \ beta
+          \/                   \ 
+         robot                robot
+    
+    law of cosines says: c = sqrt(a^2 + b^2 - 2ab Cos(theta))
+    law of sines says: beta = Sin^-1(b Sin(theta) / c)
+    angle to turn is 180 - beta
+    */
+   double c = sqrt(a*a + b*b - 2*a*b * cos(theta));
+   double beta = asin(b * sin(theta) / c);
+   return M_PI - beta;
+}
+
 void VisionSubsystem::updateClosestBall() {
     // frc::SmartDashboard::PutNumber("Power Cells", ballcount);
     int ballcount = getTotalBalls();
@@ -105,20 +122,42 @@ void VisionSubsystem::updateClosestBall() {
     if (ballcount == 0 && noBallsForAWhile) { // no balls for a while, so zero things out
         distanceClosestBall = 0.0;
         angleClosestBall = 0.0; 
+        // don't zero out second closet info, because now is the time to turn toward it
     } else for (int i = 0; i < ballcount; i++) {
         std::vector<VisionSubsystem::Ball*> balls = getBalls();
         if (balls[i] != NULL) {
             if (   (distanceClosestBall == 0) /* seeing a ball for first time in a while */
                 || (balls[i]->distance < distanceClosestBall) ) { /* or new ball is closer than old ball */
                 double candidateAngle = balls[i]->getAngle();
-                // if (angleClosestBall == 0.0 /* seeing a ball for the first time in a while */
-                //  || abs(candidateAngle - angleClosestBall) / abs(angleClosestBall) > kBallAngleTolerance) {
-                //     // change of more than (tolerance)% angle, so update closest ball
-                distanceClosestBall = balls[i]->distance;
-                angleClosestBall = candidateAngle;
-                timeBallsLastSeen = m_timer.Get();
+                if (abs((candidateAngle - angleClosestBall) / angleClosestBall) > kBallAngleTolerance) {
+                    // this jump in angle implies previous closest ball lost and new one acquired
+                    // ... treat same as no balls, and ignore until timer lapses
+                } else {
+                    distanceClosestBall = balls[i]->distance;
+                    angleClosestBall = candidateAngle;
+                    timeBallsLastSeen = m_timer.Get();
+                }
+            } else if ( (distanceSecondClosestBall == 0 && balls[i]->distance > distanceClosestBall)
+                     || (balls[i]->distance < distanceSecondClosestBall) ) { 
+                // this is not the closest ball, but is the second closest ball
+                double candidateAngle = balls[i]->getAngle();
+                if (abs((candidateAngle - angleSecondClosestBall) / angleSecondClosestBall) > kBallAngleTolerance) {
+                    // too great a jump; ignore
+                } else {
+                    distanceSecondClosestBall = balls[i]->distance;
+                    angleSecondClosestBall = candidateAngle;
+                    turnToNextBallAngle = ComputeTurnAngle(distanceClosestBall, distanceSecondClosestBall,
+                                                           angleSecondClosestBall - angleClosestBall);
+                }
             }
         }
         disposeBalls(balls);
     }
+}
+
+// call this after turn to next ball is complete
+void VisionSubsystem::clearSecondClosestBall() {
+    distanceSecondClosestBall = 0.0;
+    angleSecondClosestBall = 0.0;
+    turnToNextBallAngle = 0.0;
 }
