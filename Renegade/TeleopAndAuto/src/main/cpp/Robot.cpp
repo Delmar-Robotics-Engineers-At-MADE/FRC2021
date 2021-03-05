@@ -50,11 +50,11 @@ using namespace frc;
 	const static double kIntakeDelayGap = 0.05;
 
 	const static double kIdleShooterSpeed = 6000;
-	const static double kCloseRangeShooterSpeed = 14000;
-	const static double kCloseRangeTargetAngle = 5;
+	const static double kCloseRangeShooterSpeed = 15000;
+	const static double kCloseRangeTargetAngle = 1.8;
 	const static double kMaxShooterSpeedError = 3500;  // move conveyer automatically when speed is good
-	const static double kInitialShooterSlope = 250; // was 300 in 2020
-	const static double kInitialShooterIntercept = 13000; // was 12696.1 in 2020
+	const static double kInitialShooterSlope = 100; // was 300 in 2020
+	const static double kInitialShooterIntercept = 8000; // was 12696.1 in 2020, but then we fixed motor-shaft adaptors
 
 	const static double kMinColorConfidence = 0.85;
 	const static double kControlPanelSpeed = 0.8;
@@ -564,7 +564,7 @@ public:
 			double diff_speed = m_pidController_pixycam->Calculate(ballAngle);
 
 			// move robot
-			// frc::SmartDashboard::PutNumber("Ball chase", diff_speed);
+			frc::SmartDashboard::PutNumber("Ball chase", diff_speed);
 			m_robotDrive.TankDrive(diff_speed+kChaseBallSpeed, -diff_speed+kChaseBallSpeed, false);
 		} else if (second_ball_seen) {
 			result = ball2Angle;
@@ -863,6 +863,7 @@ public:
 			m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret; needs to hold position
 			// frc::SmartDashboard::PutString("turr mode", "stopped");
 		}
+		frc::SmartDashboard::PutNumber("conveyer", conveyer_speed);
 		m_shooter_star->Set(ControlMode::Velocity, -shooter_speed_in_units);
 
 	}
@@ -1011,15 +1012,13 @@ public:
 		// auto-chase balls
 		double angleToSecondBall = 0.0;
 		if (chase_cells_button) {
-			// kill shooter because vibration makes camera image blurry
-			m_IdleShooterSpeed = kIdleShooterSpeed / 5;
+			// kill shooter because vibration makes camera image blurry... no, not since we fixed motor-shaft adapters
 			angleToSecondBall = ChasePowerCellsByCoral();
-		} else {
-			m_IdleShooterSpeed = kIdleShooterSpeed; // when not chasing balls, idle normally
-		}
+		} 
+		// m_IdleShooterSpeed = kIdleShooterSpeed; // idle normally... no longer any need to slow down to reduce vibration
 		if (angleToSecondBall > 0.0) {
 			rotateToAngle = true;
-			targetAngle = ConvertRadsToDegrees(angleToSecondBall);
+			targetAngle = angleToSecondBall;
 		}
 
 		// rotation stuff
@@ -1074,8 +1073,10 @@ public:
 
 			} else if (spin_control_panel_button || spin_to_color_pressed) {
 				// let cp program control wheels
+			} else if (chase_cells_button) {
+				// we called ChaseBalls above
 			} else {
-				// not rotating; drive by stick
+				// not rotating or chasing balls; drive by stick
 				m_robotDrive.ArcadeDrive(ScaleSpeed(robot_rel_Y, speed_factor), ScaleSpeed(robot_rel_X, speed_factor));
 				m_pidController_gyro->Reset(); // clears out integral state, etc
 			}

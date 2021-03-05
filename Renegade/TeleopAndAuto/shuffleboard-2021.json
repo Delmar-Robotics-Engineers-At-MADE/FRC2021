@@ -197,7 +197,7 @@
               "_title": "limelight_Stream"
             }
           },
-          "8,0": {
+          "6,1": {
             "size": [
               1,
               1
@@ -208,95 +208,7 @@
               "_title": "turr state"
             }
           },
-          "8,2": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/FR Heading",
-              "_title": "FR Heading"
-            }
-          },
-          "9,2": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/FR Target",
-              "_title": "FR Target"
-            }
-          },
-          "9,0": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/FR Discont",
-              "_title": "FR Discont"
-            }
-          },
-          "10,0": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/FR Timer",
-              "_title": "FR Timer"
-            }
-          },
           "5,1": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/FR Time",
-              "_title": "FR Time"
-            }
-          },
-          "6,1": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/Power Cells",
-              "_title": "Power Cells"
-            }
-          },
-          "7,1": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/ball dist",
-              "_title": "ball dist"
-            }
-          },
-          "8,1": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/ball angle",
-              "_title": "ball angle"
-            }
-          },
-          "9,1": {
             "size": [
               1,
               1
@@ -305,6 +217,61 @@
               "_type": "Text View",
               "_source0": "network_table:///SmartDashboard/targ angle",
               "_title": "targ angle"
+            }
+          },
+          "4,3": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/conveyer",
+              "_title": "conveyer"
+            }
+          },
+          "3,3": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/V ball count",
+              "_title": "V ball count"
+            }
+          },
+          "0,3": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/V ball dist",
+              "_title": "V ball dist"
+            }
+          },
+          "1,3": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/V ball angle",
+              "_title": "V ball angle"
+            }
+          },
+          "2,3": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/V ball 2 angle",
+              "_title": "V ball 2 angle"
             }
           }
         }
@@ -433,6 +400,6 @@
     "x": -8.0,
     "y": 0.0,
     "width": 1607.0,
-    "height": 556.0
+    "height": 739.0
   }
 }

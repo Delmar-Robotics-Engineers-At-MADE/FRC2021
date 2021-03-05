@@ -122,21 +122,21 @@ void VisionSubsystem::updateClosestBall() {
     if (ballcount == 0 && noBallsForAWhile) { // no balls for a while, so zero things out
         distanceClosestBall = 0.0;
         angleClosestBall = 0.0; 
-        // don't zero out second closet info, because now is the time to turn toward it
+        // don't zero out second closest info, because now is the time to turn toward it
     } else for (int i = 0; i < ballcount; i++) {
         std::vector<VisionSubsystem::Ball*> balls = getBalls();
         if (balls[i] != NULL) {
             if (   (distanceClosestBall == 0) /* seeing a ball for first time in a while */
                 || (balls[i]->distance < distanceClosestBall) ) { /* or new ball is closer than old ball */
                 double candidateAngle = balls[i]->getAngle();
-                if (abs((candidateAngle - angleClosestBall) / angleClosestBall) > kBallAngleTolerance) {
+                //if (abs((candidateAngle - angleClosestBall) / angleClosestBall) > kBallAngleTolerance) {
                     // this jump in angle implies previous closest ball lost and new one acquired
-                    // ... treat same as no balls, and ignore until timer lapses
-                } else {
+                    // ... what to do with this?
+                //} else {
                     distanceClosestBall = balls[i]->distance;
                     angleClosestBall = candidateAngle;
                     timeBallsLastSeen = m_timer.Get();
-                }
+                //}
             } else if ( (distanceSecondClosestBall == 0 && balls[i]->distance > distanceClosestBall)
                      || (balls[i]->distance < distanceSecondClosestBall) ) { 
                 // this is not the closest ball, but is the second closest ball
