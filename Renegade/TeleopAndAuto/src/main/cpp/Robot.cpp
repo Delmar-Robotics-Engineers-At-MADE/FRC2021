@@ -189,6 +189,7 @@ class Robot: public TimedRobot {
 
 	// for moving turret
 	bool m_need_to_reset_manual_turret_move = false;
+	bool m_need_to_reset_tracking_turret_move = false;
 
 	// state machine for intake
 	enum IntakeStates {
@@ -487,7 +488,7 @@ public:
 			turret_on_hall = !hall_effect.Get();
 			if (turret_on_hall) { 
 				m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
-				frc::SmartDashboard::PutString("turr state", "found hall");
+				frc::SmartDashboard::PutString("turr state", "found hall 1");
 				break; // exit loop
 			}
 			Wait(0.1);
@@ -503,7 +504,7 @@ public:
 				turret_on_hall = !hall_effect.Get();
 				if (turret_on_hall) { 
 					m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
-					frc::SmartDashboard::PutString("turr state", "found hall");
+					frc::SmartDashboard::PutString("turr state", "found hall 2");
 					break; // exit loop
 				}
 				Wait(0.1);
@@ -577,7 +578,8 @@ public:
 		targetOffsetAngle = -targetOffsetAngle; 
 		double current_pos = m_turret->GetSelectedSensorPosition(0);
 		if (current_pos > kTurretLimitStarboard && current_pos < kTurretLimitPort) {
-			// frc::SmartDashboard::PutString("turr tracking", "safe");
+			frc::SmartDashboard::PutString("turr state", "tracking");
+			m_need_to_reset_tracking_turret_move = true;
 			m_pidController_limelight_turret->SetSetpoint(0);  // try moving this to RobotInit() and doing it only once
 			double new_speed = m_pidController_limelight_turret->Calculate(targetOffsetAngle);
 			// frc::SmartDashboard::PutNumber("turr speed", new_speed);
@@ -590,7 +592,7 @@ public:
 
 			// hold position; don't reset when on target
 		} else {
-			// frc::SmartDashboard::PutString("turr tracking", "unsafe");
+			frc::SmartDashboard::PutString("turr state", "unsafe");
 			m_turret->Set(ControlMode::PercentOutput, 0);
 		}
 		return result;
@@ -835,7 +837,6 @@ public:
 
 		double shooter_speed_in_units = kIdleShooterSpeed;
 		if (targetSeen != 0.0) {
-			// frc::SmartDashboard::PutString("turr mode", "tracking");
 			frc::SmartDashboard::PutNumber("targ angle", targetOffsetAngle_Vertical);
 			bool limelight_on_target = TrackTargetWithTurret(targetOffsetAngle_Horizontal);
 
@@ -861,7 +862,7 @@ public:
 		} else { // no target; permit manual control of conveyer
 			manual_conveyer_ok = true;
 			m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret; needs to hold position
-			// frc::SmartDashboard::PutString("turr mode", "stopped");
+			frc::SmartDashboard::PutString("turr state", "stopped");
 		}
 		frc::SmartDashboard::PutNumber("conveyer", conveyer_speed);
 		m_shooter_star->Set(ControlMode::Velocity, -shooter_speed_in_units);
@@ -1097,9 +1098,14 @@ public:
 			m_limetable->PutNumber("ledMode",3.0); // LED on
 			OperateShooter(manual_conveyer_ok, conveyer_speed, 
 			    boost_shooter_up_button, boost_shooter_down_button);
-		} else {
+		} else { // not shooting
 			m_limetable->PutNumber("ledMode",1.0); // LED off
 			m_shooter_star->Set(ControlMode::Velocity, -m_IdleShooterSpeed);
+			if (m_need_to_reset_tracking_turret_move) {
+				m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
+				m_need_to_reset_tracking_turret_move = false;
+				frc::SmartDashboard::PutString("turr state", "tracking stopped");
+			}
 		}
 		OperateConveyer(conveyer_in_button, conveyer_out_button, conveyer_speed);
 
@@ -1128,6 +1134,7 @@ public:
 		} else if (m_need_to_reset_manual_turret_move) {
 			m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
 			m_need_to_reset_manual_turret_move = false;
+			frc::SmartDashboard::PutString("turr state", "man stopped");
 		}
 		// frc::SmartDashboard::PutNumber("turret pos3", m_turret->GetSelectedSensorPosition(0));
 	}
