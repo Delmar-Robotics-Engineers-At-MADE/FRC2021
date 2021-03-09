@@ -868,6 +868,7 @@ public:
 				shooter_speed_in_units = m_shooter_C1 * pow(dist_in_feet,3) 
 				                       + m_shooter_C2 * pow(dist_in_feet,2) 
 									   + m_shooter_C3 * dist_in_feet + m_shooter_C4; 
+				frc::SmartDashboard::PutNumber("target dist", dist_in_feet);
 			}
 			if (manual_boost) {shooter_speed_in_units *= 1.1;}
 			else if (manual_deboost) {shooter_speed_in_units *= 0.9;}
