@@ -53,8 +53,13 @@ using namespace frc;
 	const static double kCloseRangeShooterSpeed = 15000;
 	const static double kCloseRangeTargetAngle = 1.8;
 	const static double kMaxShooterSpeedError = 3500;  // move conveyer automatically when speed is good
-	const static double kInitialShooterSlope = 100; // was 300 in 2020
-	const static double kInitialShooterIntercept = 8000; // was 12696.1 in 2020, but then we fixed motor-shaft adaptors
+	// const static double kInitialShooterSlope = 250; // was 300 in 2020
+	// const static double kInitialShooterIntercept = 13000; // was 12696.1 in 2020
+	// -4.11574 x^3 + 283.464 x^2 - 5519.65 x + 45450.9
+	const static double kInitialShooterC1 = -4.11574; // cubic coefficients
+	const static double kInitialShooterC2 = 283.464; // cubic coefficients
+	const static double kInitialShooterC3 = -5519.65; // cubic coefficients
+	const static double kInitialShooterC4 = 45450.9; // cubic coefficients
 
 	const static double kMinColorConfidence = 0.85;
 	const static double kControlPanelSpeed = 0.8;
@@ -128,8 +133,10 @@ class Robot: public TimedRobot {
 	// shooter 
 	TalonFX * m_shooter_star = new TalonFX(15); // 15 is starboard, 0 is port
 	TalonFX * m_shooter_port = new TalonFX(0); // 15 is starboard, 0 is port
-	double m_shooter_slope = 0.0;
-	double m_shooter_y_intercept = 0.0;
+	double m_shooter_C1 = 0.0;
+	double m_shooter_C2 = 0.0;
+	double m_shooter_C3 = 0.0;
+	double m_shooter_C4 = 0.0;
 	//Joystick * _joy = new Joystick(0);
 	// std::string _sb;
 	// int _loops = 0;
@@ -251,8 +258,13 @@ class Robot: public TimedRobot {
 	}
 
 	double ConvertRadsToDegrees (double rads) {
-	const static double conversion_factor = 180.0/3.141592653589793238463;
-	return rads * conversion_factor;
+		const static double conversion_factor = 180.0/3.141592653589793238463;
+		return rads * conversion_factor;
+	}
+
+	double ConvertDegreesToRads (double degs) {
+		const static double conversion_factor = 3.141592653589793238463/180.0;
+		return degs * conversion_factor;
 	}
 
 public:
@@ -406,8 +418,9 @@ public:
 		frc::SmartDashboard::PutNumber("kI", kItunedPixy);
 		frc::SmartDashboard::PutNumber("kD", kDtunedPixy);
 		
-		frc::SmartDashboard::PutNumber("shoot slope", kInitialShooterSlope);
-		frc::SmartDashboard::PutNumber("shoot intercept", kInitialShooterIntercept);
+		frc::SmartDashboard::PutNumber("shoot C1", kInitialShooterC1);
+		frc::SmartDashboard::PutNumber("shoot C2", kInitialShooterC2);
+		frc::SmartDashboard::PutNumber("shoot C3", kInitialShooterC3);
 		
 		// control panel colors
 		m_colorMatcher.AddColorMatch(kBlueTarget);
@@ -653,8 +666,10 @@ public:
 
 		// bring up shooter
 		m_shooter_star->Set(ControlMode::Velocity, -m_IdleShooterSpeed);
-		m_shooter_slope = frc::SmartDashboard::GetNumber("shoot slope", kInitialShooterSlope);
-		m_shooter_y_intercept = frc::SmartDashboard::GetNumber("shoot intercpt", kInitialShooterIntercept);
+		m_shooter_C1 = frc::SmartDashboard::GetNumber("shoot C1", kInitialShooterC1);
+		m_shooter_C2 = frc::SmartDashboard::GetNumber("shoot C2", kInitialShooterC2);
+		m_shooter_C3 = frc::SmartDashboard::GetNumber("shoot C3", kInitialShooterC3);
+		m_shooter_C4 = frc::SmartDashboard::GetNumber("shoot C4", kInitialShooterC4);
 
 		// position ponytail up
 		m_ponytail_solenoid.Set(frc::DoubleSolenoid::kForward);
@@ -841,16 +856,21 @@ public:
 			bool limelight_on_target = TrackTargetWithTurret(targetOffsetAngle_Horizontal);
 
 			if (targetOffsetAngle_Vertical < -18) {
-				shooter_speed_in_units = 23000;  // max out shooter if far away
+				shooter_speed_in_units = 25000;  // max out shooter if far away
 			} else if (targetOffsetAngle_Vertical >= kCloseRangeTargetAngle) { // boost if really close to target
 				shooter_speed_in_units = kCloseRangeShooterSpeed;
 			} else {
 				// 2020 Y intercept was 12696.1 
-				shooter_speed_in_units = m_shooter_y_intercept - m_shooter_slope * targetOffsetAngle_Vertical; // originally 317.502
+				// shooter_speed_in_units = m_shooter_y_intercept - m_shooter_slope * targetOffsetAngle_Vertical; // originally 317.502
+				// distance in inches =(TargetHeight_h2-CameraHeight_h1)/TAN(RADIANS(CameraAngle_a1+CameraAngle_a2))
+				// speed = -4.11574 d_in_feet^3 + 283.464 d_in_feet^2 - 5519.65 d_in_feet + 45450.9
+				double dist_in_feet = (52.55 / tan(ConvertDegreesToRads(targetOffsetAngle_Vertical + 26.5))) / 12;
+				shooter_speed_in_units = m_shooter_C1 * pow(dist_in_feet,3) 
+				                       + m_shooter_C2 * pow(dist_in_feet,2) 
+									   + m_shooter_C3 * dist_in_feet + m_shooter_C4; 
 			}
 			if (manual_boost) {shooter_speed_in_units *= 1.1;}
 			else if (manual_deboost) {shooter_speed_in_units *= 0.9;}
-			// frc::SmartDashboard::PutNumber("shoot speed", shooter_speed_in_units);
 			double shooter_speed_error = m_shooter_star->GetClosedLoopError();
 			frc::SmartDashboard::PutNumber("flywheel err", shooter_speed_error);
 			if (shooter_speed_error < kMaxShooterSpeedError && limelight_on_target) {
@@ -864,7 +884,7 @@ public:
 			m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret; needs to hold position
 			frc::SmartDashboard::PutString("turr state", "stopped");
 		}
-		frc::SmartDashboard::PutNumber("conveyer", conveyer_speed);
+		frc::SmartDashboard::PutNumber("shoot speed", shooter_speed_in_units);
 		m_shooter_star->Set(ControlMode::Velocity, -shooter_speed_in_units);
 
 	}
