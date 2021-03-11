@@ -57,11 +57,11 @@ using namespace frc;
 	const static double kMaxShooterSpeedError = 3500;  // move conveyer automatically when speed is good
 	// const static double kInitialShooterSlope = 250; // was 300 in 2020
 	// const static double kInitialShooterIntercept = 13000; // was 12696.1 in 2020
-	// -4.11574 x^3 + 283.464 x^2 - 5519.65 x + 45450.9
-	const static double kInitialShooterC1 = -4.11574; // cubic coefficients
-	const static double kInitialShooterC2 = 283.464; // cubic coefficients
-	const static double kInitialShooterC3 = -5519.65; // cubic coefficients
-	const static double kInitialShooterC4 = 45450.9; // cubic coefficients
+	// from Wolfram: 4.03411 x^3 - 171.395 x^2 + 2526.17 x + 499.393
+	const static double kInitialShooterC1 = 4.03411; // cubic coefficients
+	const static double kInitialShooterC2 = -171.395; // cubic coefficients
+	const static double kInitialShooterC3 = 2526.17; // cubic coefficients
+	const static double kInitialShooterC4 = 499.393; // cubic coefficients
 
 	const static double kMinColorConfidence = 0.85;
 	const static double kControlPanelSpeed = 0.8;
@@ -143,7 +143,8 @@ class Robot: public TimedRobot {
 	//Joystick * _joy = new Joystick(0);
 	// std::string _sb;
 	// int _loops = 0;
-	// double m_IdleShooterSpeed = -kIdleShooterSpeed;
+	double m_IdleShooterPower = kIdleShooterPower;
+	double m_IdleShooterVelocity = kIdleShooterVelocity;
 
 	// drive motors
     WPI_TalonSRX m_leftfront{1};
@@ -314,8 +315,8 @@ public:
 
 		// one follower and one reversed
 		m_shooter_port->Follow(*m_shooter_star);
-    	m_shooter_star->SetInverted(true);
-    	m_shooter_port->SetInverted(false);
+    	m_shooter_star->SetInverted(false); // flipped from 2020, to clear up minus signs
+    	m_shooter_port->SetInverted(true);
 		
 		// braking mode
 		m_shooter_star->SetNeutralMode(NeutralMode::Coast);
@@ -433,6 +434,7 @@ public:
 		frc::SmartDashboard::PutNumber("shoot C1", kInitialShooterC1);
 		frc::SmartDashboard::PutNumber("shoot C2", kInitialShooterC2);
 		frc::SmartDashboard::PutNumber("shoot C3", kInitialShooterC3);
+		frc::SmartDashboard::PutNumber("shoot C4", kInitialShooterC4);
 		
 		// control panel colors
 		m_colorMatcher.AddColorMatch(kBlueTarget);
@@ -679,7 +681,7 @@ public:
 
 		// bring up shooter
 		// m_shooter_star->Set(ControlMode::Velocity, -m_IdleShooterSpeed);
-		m_shooter_star->Set(ControlMode::PercentOutput, -kIdleShooterPower);
+		m_shooter_star->Set(ControlMode::PercentOutput, m_IdleShooterPower);
 		m_shooter_C1 = frc::SmartDashboard::GetNumber("shoot C1", kInitialShooterC1);
 		m_shooter_C2 = frc::SmartDashboard::GetNumber("shoot C2", kInitialShooterC2);
 		m_shooter_C3 = frc::SmartDashboard::GetNumber("shoot C3", kInitialShooterC3);
@@ -864,7 +866,7 @@ public:
 		conveyer_speed = 0.0; 
 		manual_conveyer_ok = false;
 
-		double shooter_speed_in_units = -kIdleShooterVelocity;
+		double shooter_speed_in_units = m_IdleShooterVelocity;
 		if (targetSeen != 0.0) {
 			frc::SmartDashboard::PutNumber("targ angle", targetOffsetAngle_Vertical);
 			bool limelight_on_target = TrackTargetWithTurret(targetOffsetAngle_Horizontal);
@@ -899,8 +901,8 @@ public:
 			m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret; needs to hold position
 			frc::SmartDashboard::PutString("turr state", "stopped");
 		}
-		frc::SmartDashboard::PutNumber("shoot speed", shooter_speed_in_units);
-		m_shooter_star->Set(ControlMode::Velocity, -shooter_speed_in_units);
+		frc::SmartDashboard::PutNumber("shoot targ speed", shooter_speed_in_units);
+		m_shooter_star->Set(ControlMode::Velocity, shooter_speed_in_units);
 
 	}
 
@@ -1060,10 +1062,13 @@ public:
 		// auto-chase balls
 		double angleToSecondBall = 0.0;
 		if (chase_cells_button) {
-			// kill shooter because vibration makes camera image blurry... no, not since we fixed motor-shaft adapters
+			m_IdleShooterVelocity = 0.0; // kill shooter because vibration makes camera image blurry
+			m_IdleShooterPower = 0.0;
 			angleToSecondBall = ChasePowerCellsByCoral();
-		} 
-		// m_IdleShooterSpeed = -kIdleShooterSpeed; // idle normally... no longer any need to slow down to reduce vibration
+		} else { // not shooting, so idle normally
+			m_IdleShooterVelocity = kIdleShooterVelocity; // idle normally
+			m_IdleShooterPower = kIdleShooterPower; // idle normally
+		}
 		if (angleToSecondBall > 0.0) {
 			rotateToAngle = true;
 			targetAngle = angleToSecondBall;
@@ -1151,7 +1156,7 @@ public:
 		} else { // not shooting
 			m_limetable->PutNumber("ledMode",1.0); // LED off
 			// m_shooter_star->Set(ControlMode::Velocity, -m_IdleShooterSpeed);
-			m_shooter_star->Set(ControlMode::PercentOutput, -kIdleShooterPower);
+			m_shooter_star->Set(ControlMode::PercentOutput, m_IdleShooterPower);
 			if (m_need_to_reset_tracking_turret_move) {
 				m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
 				m_need_to_reset_tracking_turret_move = false;
@@ -1260,7 +1265,7 @@ public:
 				OperateConveyer (false, false, conveyer_speed);
 			} else { // after 6 seconds
 				// m_shooter_star->Set(ControlMode::Velocity, -m_IdleShooterSpeed);
-				m_shooter_star->Set(ControlMode::PercentOutput, -kIdleShooterPower);
+				m_shooter_star->Set(ControlMode::PercentOutput, m_IdleShooterPower);
 				m_vert_conveyer.Set(0);
 				double motor_speed = 0.0;
 				if (m_autoSelected_options_dir == kAutoOptionForward) {
