@@ -322,11 +322,11 @@ public:
 		m_shooter_port->SetNeutralMode(NeutralMode::Coast);
 
 		// follower's dead zone should be zero, so it doesn't apply dead zone logic to signal from other motor
-		m_shooter_port->ConfigNeutralDeadband(0.0);
+		// per Matt's 2021 question, no parameters need to be set on follower anymore
+		// https://www.chiefdelphi.com/t/two-falcon-500-follower-not-working/392133/9
+		// m_shooter_port->ConfigNeutralDeadband(0.0);
 
         /* feedback sensor */
-		// per Matt's question, deadband is the only parameter that needs set on follower
-		// https://www.chiefdelphi.com/t/two-falcon-500-follower-not-working/392133/9
 		m_shooter_star->ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, kTimeoutMs);
 
 		// phase for TalonFX integrated sensor is automatically correct
