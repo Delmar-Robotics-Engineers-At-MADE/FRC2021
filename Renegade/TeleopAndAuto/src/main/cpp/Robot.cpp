@@ -74,7 +74,8 @@ using namespace frc;
 	const static long kTurretRIGHT = 7000;
 	const static long kTurretDOWN = 10000;
 	const static long kTurretLEFT = -7000;
-	const static long kLimelightTolerance = 5; // degrees
+	const static long kLimelightTolerance = 2; // degrees
+	const static long kLimelightCenter = 1.5; // 0 isn't producing a centered shot anymore (2021)
 
 	const static long kPixyTolerance = 5; // X values
 	const static double kChaseBallSpeed = 0.3;
@@ -140,7 +141,7 @@ class Robot: public TimedRobot {
 	//Joystick * _joy = new Joystick(0);
 	// std::string _sb;
 	// int _loops = 0;
-	double m_IdleShooterSpeed = kIdleShooterSpeed;
+	double m_IdleShooterSpeed = -kIdleShooterSpeed;
 
 	// drive motors
     WPI_TalonSRX m_leftfront{1};
@@ -318,8 +319,14 @@ public:
 		m_shooter_star->SetNeutralMode(NeutralMode::Coast);
 		m_shooter_port->SetNeutralMode(NeutralMode::Coast);
 
+		// follower's dead zone should be zero, so it doesn't apply dead zone logic to signal from other motor
+		m_shooter_port->ConfigNeutralDeadband(0.0);
+
         /* feedback sensor */
+		// per Matt's question, deadband is the only parameter that needs set on follower
+		// https://www.chiefdelphi.com/t/two-falcon-500-follower-not-working/392133/9
 		m_shooter_star->ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, kTimeoutMs);
+
 		// phase for TalonFX integrated sensor is automatically correct
 
 		/* set the peak and nominal outputs */
@@ -333,6 +340,9 @@ public:
 		m_shooter_star->Config_kP(kPIDLoopIdx, 0.22, kTimeoutMs);
 		m_shooter_star->Config_kI(kPIDLoopIdx, 0.0, kTimeoutMs);
 		m_shooter_star->Config_kD(kPIDLoopIdx, 0.0, kTimeoutMs);
+
+		// set follow again, in case one of the other settings undid following
+		m_shooter_port->Follow(*m_shooter_star);
 
 		/************** turret setup **********************/
 
@@ -593,7 +603,7 @@ public:
 		if (current_pos > kTurretLimitStarboard && current_pos < kTurretLimitPort) {
 			frc::SmartDashboard::PutString("turr state", "tracking");
 			m_need_to_reset_tracking_turret_move = true;
-			m_pidController_limelight_turret->SetSetpoint(0);  // try moving this to RobotInit() and doing it only once
+			// m_pidController_limelight_turret->SetSetpoint(0);  // try moving this to RobotInit() and doing it only once
 			double new_speed = m_pidController_limelight_turret->Calculate(targetOffsetAngle);
 			// frc::SmartDashboard::PutNumber("turr speed", new_speed);
 			// frc::SmartDashboard::PutNumber("off ang", targetOffsetAngle);
@@ -651,6 +661,7 @@ public:
 			m_pidController_limelight_robot->SetTolerance(kLimelightTolerance, kLimelightTolerance);  // within 8 degrees of target is considered on set point
 			m_pidController_limelight_turret = new frc2::PIDController (kPturret, kIturret, kDturret);
 			m_pidController_limelight_turret->SetTolerance(kLimelightTolerance, kLimelightTolerance);  // within 8 degrees of target is considered on set point
+			m_pidController_limelight_turret->SetSetpoint(kLimelightCenter);
 			m_pidController_pixycam = new frc2::PIDController (P, I, D);
 			m_pidController_pixycam->SetTolerance(kPixyTolerance, kPixyTolerance);  // within 8 degrees of target is considered on set point
 			m_pidController_pixycam->SetSetpoint(0);  // always use same setpoint
@@ -850,7 +861,7 @@ public:
 		conveyer_speed = 0.0; 
 		manual_conveyer_ok = false;
 
-		double shooter_speed_in_units = kIdleShooterSpeed;
+		double shooter_speed_in_units = -kIdleShooterSpeed;
 		if (targetSeen != 0.0) {
 			frc::SmartDashboard::PutNumber("targ angle", targetOffsetAngle_Vertical);
 			bool limelight_on_target = TrackTargetWithTurret(targetOffsetAngle_Horizontal);
@@ -930,13 +941,13 @@ public:
 			targetAngle = 270.0f;
 			rotateToAngle = true;
 		}
-		if (field_rel_R > kGamepadDeadZone) {
-			rotateToAngle = true;
-			// was angle = copysign(angle, field_rel_X); // make angle negative if X is negative
-			// a little trig to convert joystick to angle
-			targetAngle =  90 - ConvertRadsToDegrees(atan(field_rel_Y/abs(field_rel_X)));
-			if (field_rel_X < 0) {targetAngle = 360 - targetAngle;}  // shift from -180>180 to 0>360
-		}
+		// if (field_rel_R > kGamepadDeadZone) {
+		// 	rotateToAngle = true;
+		// 	// was angle = copysign(angle, field_rel_X); // make angle negative if X is negative
+		// 	// a little trig to convert joystick to angle
+		// 	targetAngle =  90 - ConvertRadsToDegrees(atan(field_rel_Y/abs(field_rel_X)));
+		// 	if (field_rel_X < 0) {targetAngle = 360 - targetAngle;}  // shift from -180>180 to 0>360
+		// }
 
 		bool reset_yaw_button_pressed = false;  // reset gyro angle
 		bool chase_cells_button = false;
@@ -1037,7 +1048,7 @@ public:
 			// kill shooter because vibration makes camera image blurry... no, not since we fixed motor-shaft adapters
 			angleToSecondBall = ChasePowerCellsByCoral();
 		} 
-		// m_IdleShooterSpeed = kIdleShooterSpeed; // idle normally... no longer any need to slow down to reduce vibration
+		// m_IdleShooterSpeed = -kIdleShooterSpeed; // idle normally... no longer any need to slow down to reduce vibration
 		if (angleToSecondBall > 0.0) {
 			rotateToAngle = true;
 			targetAngle = angleToSecondBall;
@@ -1099,7 +1110,8 @@ public:
 				// we called ChaseBalls above
 			} else {
 				// not rotating or chasing balls; drive by stick
-				m_robotDrive.ArcadeDrive(ScaleSpeed(robot_rel_Y, speed_factor), ScaleSpeed(robot_rel_X, speed_factor));
+				// 2020 was m_robotDrive.ArcadeDrive(ScaleSpeed(robot_rel_Y, speed_factor), ScaleSpeed(robot_rel_X, speed_factor));
+				m_robotDrive.TankDrive(ScaleSpeed(robot_rel_Y, speed_factor), ScaleSpeed(field_rel_Y, speed_factor));
 				m_pidController_gyro->Reset(); // clears out integral state, etc
 			}
 		} catch (std::exception& ex ) {
