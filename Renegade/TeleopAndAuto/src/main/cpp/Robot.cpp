@@ -40,6 +40,7 @@ using namespace frc;
 	const static double kGamepadDeadZone = 0.15;
 	const static double kSlowSpeedFactor = 0.7;
 	const static double kFastSpeedFactor = 0.9;
+	const static double kArcadeTurningBoost = 1.5;
 	const static double kMinTargetAreaPercent = 0.1;
 	const static double kDriveAgainstCPSpeed = 0.25;
 
@@ -222,7 +223,7 @@ class Robot: public TimedRobot {
 
 	// misc members
     double rotateToAngleRate;           // Current rotation rate
-    double speed_factor = 0.5;
+    // double speed_factor = 0.5;
 	frc::SendableChooser<std::string> m_chooser;
 	frc::SendableChooser<std::string> m_chooser_options_dir;
 	frc::SendableChooser<std::string> m_chooser_options_speed;
@@ -902,6 +903,18 @@ public:
 		m_shooter_star->Set(ControlMode::Velocity, -shooter_speed_in_units);
 
 	}
+
+	double BoostSpeedIfTurning (double s, double y, double x) {
+		if (x > 0 && y > 0) {
+			double angle = ConvertRadsToDegrees(atan(abs(y/x)));
+			frc::SmartDashboard::PutNumber("joy angle", angle);
+			if (angle > 30 && angle < 60) { // turning, so boost
+				s *= kArcadeTurningBoost;
+			}
+		}
+		return s;
+	}
+
 	void TeleopPeriodic() {
 
 		//double targetPositionRotations =  -2000 * shooter_Y; // positive moves turret clockwise
@@ -943,13 +956,13 @@ public:
 			targetAngle = 270.0f;
 			rotateToAngle = true;
 		}
-		// if (field_rel_R > kGamepadDeadZone) {
-		// 	rotateToAngle = true;
-		// 	// was angle = copysign(angle, field_rel_X); // make angle negative if X is negative
-		// 	// a little trig to convert joystick to angle
-		// 	targetAngle =  90 - ConvertRadsToDegrees(atan(field_rel_Y/abs(field_rel_X)));
-		// 	if (field_rel_X < 0) {targetAngle = 360 - targetAngle;}  // shift from -180>180 to 0>360
-		// }
+		if (field_rel_R > kGamepadDeadZone) {
+			rotateToAngle = true;
+			// was angle = copysign(angle, field_rel_X); // make angle negative if X is negative
+			// a little trig to convert joystick to angle
+			targetAngle =  90 - ConvertRadsToDegrees(atan(field_rel_Y/abs(field_rel_X)));
+			if (field_rel_X < 0) {targetAngle = 360 - targetAngle;}  // shift from -180>180 to 0>360
+		}
 
 		bool reset_yaw_button_pressed = false;  // reset gyro angle
 		bool chase_cells_button = false;
@@ -1040,8 +1053,8 @@ public:
 		}
 
 		// if (slow_gear_button_pressed) {speed_factor = kSlowSpeedFactor;}
+		double speed_factor = kSlowSpeedFactor;
 		if (high_gear_button_presssed) {speed_factor = kFastSpeedFactor;}
-		else {speed_factor = kSlowSpeedFactor;}
 		// frc::SmartDashboard::PutNumber ("Rotate ratio", abs(kMaxRotateRate - abs(rotateToAngleRate)) / kMaxRotateRate);
 
 		// auto-chase balls
@@ -1112,8 +1125,10 @@ public:
 				// we called ChaseBalls above
 			} else {
 				// not rotating or chasing balls; drive by stick
-				// 2020 was m_robotDrive.ArcadeDrive(ScaleSpeed(robot_rel_Y, speed_factor), ScaleSpeed(robot_rel_X, speed_factor));
-				m_robotDrive.TankDrive(ScaleSpeed(robot_rel_Y, speed_factor), ScaleSpeed(field_rel_Y, speed_factor));
+				speed_factor = BoostSpeedIfTurning(speed_factor, robot_rel_Y, robot_rel_X);
+				frc::SmartDashboard::PutNumber("arcade boost", speed_factor);
+				m_robotDrive.ArcadeDrive(ScaleSpeed(robot_rel_Y, speed_factor), ScaleSpeed(robot_rel_X, speed_factor));
+				// experiment for Mike CN: m_robotDrive.TankDrive(ScaleSpeed(robot_rel_Y, speed_factor), ScaleSpeed(field_rel_Y, speed_factor));
 				m_pidController_gyro->Reset(); // clears out integral state, etc
 			}
 		} catch (std::exception& ex ) {
