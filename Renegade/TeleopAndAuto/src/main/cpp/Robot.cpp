@@ -49,7 +49,8 @@ using namespace frc;
 	const static double kIntakeDelayArrival = 1;
 	const static double kIntakeDelayGap = 0.05;
 
-	const static double kIdleShooterSpeed = 6000;
+	const static double kIdleShooterPower = 0.25; 
+	const static double kIdleShooterVelocity = 6000; 
 	const static double kCloseRangeShooterSpeed = 15000;
 	const static double kCloseRangeTargetAngle = 1.8;
 	const static double kMaxShooterSpeedError = 3500;  // move conveyer automatically when speed is good
@@ -141,7 +142,7 @@ class Robot: public TimedRobot {
 	//Joystick * _joy = new Joystick(0);
 	// std::string _sb;
 	// int _loops = 0;
-	double m_IdleShooterSpeed = -kIdleShooterSpeed;
+	// double m_IdleShooterSpeed = -kIdleShooterSpeed;
 
 	// drive motors
     WPI_TalonSRX m_leftfront{1};
@@ -676,7 +677,8 @@ public:
 	void RepeatableInit() {
 
 		// bring up shooter
-		m_shooter_star->Set(ControlMode::Velocity, -m_IdleShooterSpeed);
+		// m_shooter_star->Set(ControlMode::Velocity, -m_IdleShooterSpeed);
+		m_shooter_star->Set(ControlMode::PercentOutput, -kIdleShooterPower);
 		m_shooter_C1 = frc::SmartDashboard::GetNumber("shoot C1", kInitialShooterC1);
 		m_shooter_C2 = frc::SmartDashboard::GetNumber("shoot C2", kInitialShooterC2);
 		m_shooter_C3 = frc::SmartDashboard::GetNumber("shoot C3", kInitialShooterC3);
@@ -861,7 +863,7 @@ public:
 		conveyer_speed = 0.0; 
 		manual_conveyer_ok = false;
 
-		double shooter_speed_in_units = -kIdleShooterSpeed;
+		double shooter_speed_in_units = -kIdleShooterVelocity;
 		if (targetSeen != 0.0) {
 			frc::SmartDashboard::PutNumber("targ angle", targetOffsetAngle_Vertical);
 			bool limelight_on_target = TrackTargetWithTurret(targetOffsetAngle_Horizontal);
@@ -1133,7 +1135,8 @@ public:
 			    boost_shooter_up_button, boost_shooter_down_button);
 		} else { // not shooting
 			m_limetable->PutNumber("ledMode",1.0); // LED off
-			m_shooter_star->Set(ControlMode::Velocity, -m_IdleShooterSpeed);
+			// m_shooter_star->Set(ControlMode::Velocity, -m_IdleShooterSpeed);
+			m_shooter_star->Set(ControlMode::PercentOutput, -kIdleShooterPower);
 			if (m_need_to_reset_tracking_turret_move) {
 				m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
 				m_need_to_reset_tracking_turret_move = false;
@@ -1241,7 +1244,8 @@ public:
 				OperateShooter(manual_conveyer_ok, conveyer_speed, false, false);
 				OperateConveyer (false, false, conveyer_speed);
 			} else { // after 6 seconds
-				m_shooter_star->Set(ControlMode::Velocity, -m_IdleShooterSpeed);
+				// m_shooter_star->Set(ControlMode::Velocity, -m_IdleShooterSpeed);
+				m_shooter_star->Set(ControlMode::PercentOutput, -kIdleShooterPower);
 				m_vert_conveyer.Set(0);
 				double motor_speed = 0.0;
 				if (m_autoSelected_options_dir == kAutoOptionForward) {
