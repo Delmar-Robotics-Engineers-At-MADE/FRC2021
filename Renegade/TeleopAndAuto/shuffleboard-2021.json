@@ -54,7 +54,7 @@
               "_title": "Auto Wait?"
             }
           },
-          "6,2": {
+          "7,2": {
             "size": [
               1,
               1
@@ -175,7 +175,7 @@
               "_title": "kP"
             }
           },
-          "7,2": {
+          "8,2": {
             "size": [
               1,
               1
@@ -272,6 +272,105 @@
               "_type": "Text View",
               "_source0": "network_table:///SmartDashboard/V ball 2 angle",
               "_title": "V ball 2 angle"
+            }
+          },
+          "8,0": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/shoot C1",
+              "_title": "shoot C1"
+            }
+          },
+          "9,0": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/shoot C2",
+              "_title": "shoot C2"
+            }
+          },
+          "10,0": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/shoot C3",
+              "_title": "shoot C3"
+            }
+          },
+          "7,1": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/shoot C4",
+              "_title": "shoot C4"
+            }
+          },
+          "8,1": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/arcade boost",
+              "_title": "arcade boost"
+            }
+          },
+          "9,1": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/joy angle",
+              "_title": "joy angle"
+            }
+          },
+          "10,1": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/shoot targ speed",
+              "_title": "shoot targ speed"
+            }
+          },
+          "5,3": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/target dist",
+              "_title": "target dist"
+            }
+          },
+          "6,2": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/kF",
+              "_title": "kF"
             }
           }
         }

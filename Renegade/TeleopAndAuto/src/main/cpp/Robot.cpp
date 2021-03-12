@@ -111,6 +111,10 @@ using namespace frc;
 	const static double kPturret = 0.01;
 	const static double kIturret = 0.003;
 	const static double kDturret = 0.0;
+	const static double kPtunedShooter = 0.1425;
+	const static double kItunedShooter = 0.01425;
+	const static double kDtunedShooter = 0.0;
+	const static double kFtunedShooter = 1.425;
 
 	// for field relative and vision
 	const static double kFieldRelDriveSmoothTime = 0.4;
@@ -339,10 +343,10 @@ public:
 		m_shooter_star->ConfigPeakOutputReverse(-1, kTimeoutMs);
 
 		/* set closed loop gains in slot0 */
-		m_shooter_star->Config_kF(kPIDLoopIdx, 0.1097, kTimeoutMs);
-		m_shooter_star->Config_kP(kPIDLoopIdx, 0.22, kTimeoutMs);
-		m_shooter_star->Config_kI(kPIDLoopIdx, 0.0, kTimeoutMs);
-		m_shooter_star->Config_kD(kPIDLoopIdx, 0.0, kTimeoutMs);
+		// m_shooter_star->Config_kF(kPIDLoopIdx, 0.0, kTimeoutMs); // was .1097
+		// m_shooter_star->Config_kP(kPIDLoopIdx, 0.2, kTimeoutMs); // was 0.22
+		// m_shooter_star->Config_kI(kPIDLoopIdx, 0.0, kTimeoutMs); // was 0
+		// m_shooter_star->Config_kD(kPIDLoopIdx, 0.0, kTimeoutMs); // was 0
 
 		// set follow again, in case one of the other settings undid following
 		m_shooter_port->Follow(*m_shooter_star);
@@ -425,11 +429,11 @@ public:
 		// for vision
 		m_visionSubsystem = new VisionSubsystem();
 
-
 		/* this is used to tune the PID numbers with shuffleboard */
-		frc::SmartDashboard::PutNumber("kP", kPtunedPixy);
-		frc::SmartDashboard::PutNumber("kI", kItunedPixy);
-		frc::SmartDashboard::PutNumber("kD", kDtunedPixy);
+		frc::SmartDashboard::PutNumber("kP", kPtunedShooter);
+		frc::SmartDashboard::PutNumber("kI", kItunedShooter);
+		frc::SmartDashboard::PutNumber("kD", kDtunedShooter); 
+		frc::SmartDashboard::PutNumber("kF", kFtunedShooter); 
 		
 		frc::SmartDashboard::PutNumber("shoot C1", kInitialShooterC1);
 		frc::SmartDashboard::PutNumber("shoot C2", kInitialShooterC2);
@@ -645,31 +649,39 @@ public:
 
 			ahrs->ZeroYaw();
 
-			double P_gyro = kPtunedGyro;
-			double I_gyro = kItunedGyro;
-			double D_gyro = kDtunedGyro;
-			double P_pixy = kPtunedPixy;  // try using the same pid values for rotating to balls
-			double I_pixy = kItunedPixy;
-			double D_pixy = kDtunedPixy;
+			// double P_gyro = kPtunedGyro;
+			// double I_gyro = kItunedGyro;
+			// double D_gyro = kItunedGyro;
+			// double P_pixy = kPtunedPixy;  // try using the same pid values for rotating to balls
+			// double I_pixy = kItunedPixy;
+			// double D_pixy = kDtunedPixy;
+			double P_shooter = kPtunedShooter;
+			double I_shooter = kItunedShooter;
+			double D_shooter = kDtunedShooter;
+			double F_shooter = kFtunedShooter;
 
 			/* used to tune PID numbers */
-			double P = frc::SmartDashboard::GetNumber("kP", P_pixy);
-			double I = frc::SmartDashboard::GetNumber("kI", I_pixy);
-			double D = frc::SmartDashboard::GetNumber("kD", D_pixy);
+			double P = frc::SmartDashboard::GetNumber("kP", P_shooter);
+			double I = frc::SmartDashboard::GetNumber("kI", I_shooter);
+			double D = frc::SmartDashboard::GetNumber("kD", D_shooter);
+			double F = frc::SmartDashboard::GetNumber("kF", F_shooter);
 					
 			
 			// PIDs
-			m_pidController_gyro = new frc2::PIDController (P_gyro, I_gyro, D_gyro);
+			m_pidController_gyro = new frc2::PIDController (kPtunedGyro, kItunedGyro, kDtunedGyro);
 			m_pidController_gyro->SetTolerance(8, 8);  // within 8 degrees of direction is considered on set point
-			m_pidController_limelight_robot = new frc2::PIDController (P_gyro, I_gyro, D_gyro);
+			m_pidController_limelight_robot = new frc2::PIDController (kPtunedGyro, kItunedGyro, kDtunedGyro);
 			m_pidController_limelight_robot->SetTolerance(kLimelightTolerance, kLimelightTolerance);  // within 8 degrees of target is considered on set point
 			m_pidController_limelight_turret = new frc2::PIDController (kPturret, kIturret, kDturret);
 			m_pidController_limelight_turret->SetTolerance(kLimelightTolerance, kLimelightTolerance);  // within 8 degrees of target is considered on set point
 			m_pidController_limelight_turret->SetSetpoint(kLimelightCenter);
-			m_pidController_pixycam = new frc2::PIDController (P, I, D);
+			m_pidController_pixycam = new frc2::PIDController (kPtunedPixy, kItunedPixy, kDtunedPixy);
 			m_pidController_pixycam->SetTolerance(kPixyTolerance, kPixyTolerance);  // within 8 degrees of target is considered on set point
 			m_pidController_pixycam->SetSetpoint(0);  // always use same setpoint
-
+			m_shooter_star->Config_kF(kPIDLoopIdx, F_shooter, kTimeoutMs); // was .1097  /* set closed loop gains in slot0 */
+			m_shooter_star->Config_kP(kPIDLoopIdx, P_shooter, kTimeoutMs); // was 0.22
+			m_shooter_star->Config_kI(kPIDLoopIdx, I_shooter, kTimeoutMs); // was 0
+			m_shooter_star->Config_kD(kPIDLoopIdx, D_shooter, kTimeoutMs); // was 0
 			// position turret
 			MoveTurretToStartingPosition();
 		}
@@ -680,7 +692,7 @@ public:
 	void RepeatableInit() {
 
 		// bring up shooter
-		// m_shooter_star->Set(ControlMode::Velocity, -m_IdleShooterSpeed);
+		// m_shooter_star->Set(ControlMode::Velocity, m_IdleShooterVelocity);
 		m_shooter_star->Set(ControlMode::PercentOutput, m_IdleShooterPower);
 		m_shooter_C1 = frc::SmartDashboard::GetNumber("shoot C1", kInitialShooterC1);
 		m_shooter_C2 = frc::SmartDashboard::GetNumber("shoot C2", kInitialShooterC2);
@@ -888,7 +900,7 @@ public:
 			}
 			if (manual_boost) {shooter_speed_in_units *= 1.1;}
 			else if (manual_deboost) {shooter_speed_in_units *= 0.9;}
-			double shooter_speed_error = m_shooter_star->GetClosedLoopError();
+			double shooter_speed_error = m_shooter_star->GetClosedLoopError(0);
 			frc::SmartDashboard::PutNumber("flywheel err", shooter_speed_error);
 			if (shooter_speed_error < kMaxShooterSpeedError && limelight_on_target) {
 				// auto feed balls into shooter
@@ -1155,7 +1167,7 @@ public:
 			    boost_shooter_up_button, boost_shooter_down_button);
 		} else { // not shooting
 			m_limetable->PutNumber("ledMode",1.0); // LED off
-			// m_shooter_star->Set(ControlMode::Velocity, -m_IdleShooterSpeed);
+			// m_shooter_star->Set(ControlMode::Velocity, m_IdleShooterVelocity);
 			m_shooter_star->Set(ControlMode::PercentOutput, m_IdleShooterPower);
 			if (m_need_to_reset_tracking_turret_move) {
 				m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
@@ -1264,7 +1276,7 @@ public:
 				OperateShooter(manual_conveyer_ok, conveyer_speed, false, false);
 				OperateConveyer (false, false, conveyer_speed);
 			} else { // after 6 seconds
-				// m_shooter_star->Set(ControlMode::Velocity, -m_IdleShooterSpeed);
+				// m_shooter_star->Set(ControlMode::Velocity, m_IdleShooterVelocity);
 				m_shooter_star->Set(ControlMode::PercentOutput, m_IdleShooterPower);
 				m_vert_conveyer.Set(0);
 				double motor_speed = 0.0;
