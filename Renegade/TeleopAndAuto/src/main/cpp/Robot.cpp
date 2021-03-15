@@ -111,10 +111,10 @@ using namespace frc;
 	const static double kPturret = 0.01;
 	const static double kIturret = 0.003;
 	const static double kDturret = 0.0;
-	const static double kPtunedShooter = 0.1425;
-	const static double kItunedShooter = 0.01425;
+	const static double kPtunedShooter = 0.005;
+	const static double kItunedShooter = 0.00005;
 	const static double kDtunedShooter = 0.0;
-	const static double kFtunedShooter = 1.425;
+	const static double kFtunedShooter = 0.045;
 
 	// for field relative and vision
 	const static double kFieldRelDriveSmoothTime = 0.4;
@@ -647,25 +647,7 @@ public:
 	void DoOnceInit() {
 		if (!m_do_once_inited) {
 
-			ahrs->ZeroYaw();
-
-			// double P_gyro = kPtunedGyro;
-			// double I_gyro = kItunedGyro;
-			// double D_gyro = kItunedGyro;
-			// double P_pixy = kPtunedPixy;  // try using the same pid values for rotating to balls
-			// double I_pixy = kItunedPixy;
-			// double D_pixy = kDtunedPixy;
-			double P_shooter = kPtunedShooter;
-			double I_shooter = kItunedShooter;
-			double D_shooter = kDtunedShooter;
-			double F_shooter = kFtunedShooter;
-
-			/* used to tune PID numbers */
-			double P = frc::SmartDashboard::GetNumber("kP", P_shooter);
-			double I = frc::SmartDashboard::GetNumber("kI", I_shooter);
-			double D = frc::SmartDashboard::GetNumber("kD", D_shooter);
-			double F = frc::SmartDashboard::GetNumber("kF", F_shooter);
-					
+			ahrs->ZeroYaw();				
 			
 			// PIDs
 			m_pidController_gyro = new frc2::PIDController (kPtunedGyro, kItunedGyro, kDtunedGyro);
@@ -678,10 +660,7 @@ public:
 			m_pidController_pixycam = new frc2::PIDController (kPtunedPixy, kItunedPixy, kDtunedPixy);
 			m_pidController_pixycam->SetTolerance(kPixyTolerance, kPixyTolerance);  // within 8 degrees of target is considered on set point
 			m_pidController_pixycam->SetSetpoint(0);  // always use same setpoint
-			m_shooter_star->Config_kF(kPIDLoopIdx, F_shooter, kTimeoutMs); // was .1097  /* set closed loop gains in slot0 */
-			m_shooter_star->Config_kP(kPIDLoopIdx, P_shooter, kTimeoutMs); // was 0.22
-			m_shooter_star->Config_kI(kPIDLoopIdx, I_shooter, kTimeoutMs); // was 0
-			m_shooter_star->Config_kD(kPIDLoopIdx, D_shooter, kTimeoutMs); // was 0
+
 			// position turret
 			MoveTurretToStartingPosition();
 		}
@@ -691,6 +670,17 @@ public:
 
 	void RepeatableInit() {
 
+		double P_shooter = kPtunedShooter;
+		double I_shooter = kItunedShooter;
+		double D_shooter = kDtunedShooter;
+		double F_shooter = kFtunedShooter;
+	
+		/* used to tune PID numbers */
+		double P = frc::SmartDashboard::GetNumber("kP", P_shooter);
+		double I = frc::SmartDashboard::GetNumber("kI", I_shooter);
+		double D = frc::SmartDashboard::GetNumber("kD", D_shooter);
+		double F = frc::SmartDashboard::GetNumber("kF", F_shooter);
+
 		// bring up shooter
 		// m_shooter_star->Set(ControlMode::Velocity, m_IdleShooterVelocity);
 		m_shooter_star->Set(ControlMode::PercentOutput, m_IdleShooterPower);
@@ -698,6 +688,12 @@ public:
 		m_shooter_C2 = frc::SmartDashboard::GetNumber("shoot C2", kInitialShooterC2);
 		m_shooter_C3 = frc::SmartDashboard::GetNumber("shoot C3", kInitialShooterC3);
 		m_shooter_C4 = frc::SmartDashboard::GetNumber("shoot C4", kInitialShooterC4);
+
+		m_shooter_star->Config_kF(kPIDLoopIdx, F, kTimeoutMs); // was .1097  /* set closed loop gains in slot0 */
+		m_shooter_star->Config_kP(kPIDLoopIdx, P, kTimeoutMs); // was 0.22
+		m_shooter_star->Config_kI(kPIDLoopIdx, I, kTimeoutMs); // was 0
+		m_shooter_star->Config_kD(kPIDLoopIdx, D, kTimeoutMs); // was 0
+		frc::SmartDashboard::PutNumber("pid check F", F);
 
 		// position ponytail up
 		m_ponytail_solenoid.Set(frc::DoubleSolenoid::kForward);
@@ -900,7 +896,7 @@ public:
 			}
 			if (manual_boost) {shooter_speed_in_units *= 1.1;}
 			else if (manual_deboost) {shooter_speed_in_units *= 0.9;}
-			double shooter_speed_error = m_shooter_star->GetClosedLoopError(0);
+			double shooter_speed_error = m_shooter_star->GetClosedLoopError(kPIDLoopIdx);
 			frc::SmartDashboard::PutNumber("flywheel err", shooter_speed_error);
 			if (shooter_speed_error < kMaxShooterSpeedError && limelight_on_target) {
 				// auto feed balls into shooter
