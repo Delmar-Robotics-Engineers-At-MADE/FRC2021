@@ -54,18 +54,7 @@
               "_title": "Auto Wait?"
             }
           },
-          "7,2": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/shoot slope",
-              "_title": "shoot slope"
-            }
-          },
-          "0,1": {
+          "1,1": {
             "size": [
               1,
               1
@@ -76,7 +65,7 @@
               "_title": "CP COMPLETE"
             }
           },
-          "1,1": {
+          "2,1": {
             "size": [
               1,
               1
@@ -87,7 +76,7 @@
               "_title": "color"
             }
           },
-          "2,1": {
+          "3,1": {
             "size": [
               1,
               1
@@ -98,7 +87,7 @@
               "_title": "confidence"
             }
           },
-          "3,1": {
+          "5,1": {
             "size": [
               1,
               1
@@ -109,18 +98,7 @@
               "_title": "flywheel err"
             }
           },
-          "4,1": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/Ball chase",
-              "_title": "Ball chase"
-            }
-          },
-          "2,2": {
+          "2,3": {
             "size": [
               1,
               1
@@ -131,7 +109,7 @@
               "_title": "limelight_PipelineName"
             }
           },
-          "1,2": {
+          "1,3": {
             "size": [
               1,
               1
@@ -142,7 +120,7 @@
               "_title": "limelight_Interface"
             }
           },
-          "5,2": {
+          "2,2": {
             "size": [
               1,
               1
@@ -153,7 +131,7 @@
               "_title": "kD"
             }
           },
-          "4,2": {
+          "1,2": {
             "size": [
               1,
               1
@@ -164,7 +142,7 @@
               "_title": "kI"
             }
           },
-          "3,2": {
+          "0,2": {
             "size": [
               1,
               1
@@ -175,18 +153,7 @@
               "_title": "kP"
             }
           },
-          "8,2": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/shoot intercept",
-              "_title": "shoot intercept"
-            }
-          },
-          "0,2": {
+          "0,3": {
             "size": [
               1,
               1
@@ -197,7 +164,7 @@
               "_title": "limelight_Stream"
             }
           },
-          "6,1": {
+          "0,1": {
             "size": [
               1,
               1
@@ -208,7 +175,7 @@
               "_title": "turr state"
             }
           },
-          "5,1": {
+          "6,1": {
             "size": [
               1,
               1
@@ -219,18 +186,7 @@
               "_title": "targ angle"
             }
           },
-          "4,3": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/conveyer",
-              "_title": "conveyer"
-            }
-          },
-          "3,3": {
+          "6,3": {
             "size": [
               1,
               1
@@ -241,7 +197,7 @@
               "_title": "V ball count"
             }
           },
-          "0,3": {
+          "3,3": {
             "size": [
               1,
               1
@@ -252,7 +208,7 @@
               "_title": "V ball dist"
             }
           },
-          "1,3": {
+          "4,3": {
             "size": [
               1,
               1
@@ -263,7 +219,7 @@
               "_title": "V ball angle"
             }
           },
-          "2,3": {
+          "5,3": {
             "size": [
               1,
               1
@@ -274,7 +230,7 @@
               "_title": "V ball 2 angle"
             }
           },
-          "8,0": {
+          "4,2": {
             "size": [
               1,
               1
@@ -285,7 +241,7 @@
               "_title": "shoot C1"
             }
           },
-          "9,0": {
+          "5,2": {
             "size": [
               1,
               1
@@ -296,7 +252,7 @@
               "_title": "shoot C2"
             }
           },
-          "10,0": {
+          "6,2": {
             "size": [
               1,
               1
@@ -307,7 +263,7 @@
               "_title": "shoot C3"
             }
           },
-          "7,1": {
+          "7,2": {
             "size": [
               1,
               1
@@ -318,7 +274,7 @@
               "_title": "shoot C4"
             }
           },
-          "8,1": {
+          "7,1": {
             "size": [
               1,
               1
@@ -329,7 +285,7 @@
               "_title": "arcade boost"
             }
           },
-          "9,1": {
+          "8,1": {
             "size": [
               1,
               1
@@ -340,7 +296,7 @@
               "_title": "joy angle"
             }
           },
-          "10,1": {
+          "4,1": {
             "size": [
               1,
               1
@@ -351,18 +307,7 @@
               "_title": "shoot targ speed"
             }
           },
-          "5,3": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/target dist",
-              "_title": "target dist"
-            }
-          },
-          "6,2": {
+          "3,2": {
             "size": [
               1,
               1

@@ -561,20 +561,20 @@ public:
 		bool ball_seen = m_pixytable->GetNumber("STATUS", -1);
 		if (ball_seen == 1) {
 			double pixy_X = 167 - m_pixytable->GetNumber("X",0.0);
-			frc::SmartDashboard::PutString("Balls", "yes");
-			frc::SmartDashboard::PutNumber("Ball X", pixy_X);
+			frc::SmartDashboard::PutString("BC Balls", "yes");
+			frc::SmartDashboard::PutNumber("BC Ball X", pixy_X);
 
 			double diff_speed = m_pidController_pixycam->Calculate(pixy_X);
 
 			// move robot
-			frc::SmartDashboard::PutNumber("Ball chase", diff_speed);
+			frc::SmartDashboard::PutNumber("BC speed", diff_speed);
 			m_robotDrive.TankDrive(-diff_speed+kChaseBallSpeed, diff_speed+kChaseBallSpeed, false);
 
 			// don't reset pid controller
 		} else if (ball_seen == 0) { // no balls seen
-			frc::SmartDashboard::PutString("Balls", "no");
+			frc::SmartDashboard::PutString("BC Balls", "no");
 		} else { // error of some kind
-			frc::SmartDashboard::PutString("Balls", "error");
+			frc::SmartDashboard::PutString("BC Balls", "error");
 		}
 	}
 
@@ -596,7 +596,7 @@ public:
 			double diff_speed = m_pidController_pixycam->Calculate(ballAngle);
 
 			// move robot
-			frc::SmartDashboard::PutNumber("Ball chase", diff_speed);
+			frc::SmartDashboard::PutNumber("V Ball chase", diff_speed);
 			m_robotDrive.TankDrive(diff_speed+kChaseBallSpeed, -diff_speed+kChaseBallSpeed, false);
 		} else if (second_ball_seen) {
 			result = ball2Angle;
@@ -892,7 +892,7 @@ public:
 				shooter_speed_in_units = m_shooter_C1 * pow(dist_in_feet,3) 
 				                       + m_shooter_C2 * pow(dist_in_feet,2) 
 									   + m_shooter_C3 * dist_in_feet + m_shooter_C4; 
-				frc::SmartDashboard::PutNumber("target dist", dist_in_feet);
+				frc::SmartDashboard::PutNumber("targ dist", dist_in_feet);
 			}
 			if (manual_boost) {shooter_speed_in_units *= 1.1;}
 			else if (manual_deboost) {shooter_speed_in_units *= 0.9;}
@@ -1054,6 +1054,12 @@ public:
 			ahrs->ZeroYaw();
 		}
 
+		double currAngle = (int)ahrs->GetAngle() % 360;  // angle accumulates past 360, so modulus
+
+		// for planning autonomous
+		frc::SmartDashboard::PutNumber ("T Heading", currAngle); 
+		frc::SmartDashboard::PutNumber ("T Pos", m_leftfront.GetSelectedSensorPosition(0)); 
+
 		if (m_need_to_reset_coast && !brake_button_pressed) { // no longer braking; go back to coasting
 			m_leftfront.SetNeutralMode(NeutralMode::Coast);
 			m_leftrear.SetNeutralMode(NeutralMode::Coast);
@@ -1095,7 +1101,6 @@ public:
 				// MJS: since it's diff drive instead of mecanum drive, use tank method for rotation
 				m_pidController_gyro->SetSetpoint(targetAngle);
 
-				double currAngle = (int)ahrs->GetAngle() % 360;  // angle accumulates past 360, so modulus
 				if (currAngle < 0) {currAngle = 360 + currAngle;} // shift from -360>360 to 0>360
 				// frc::SmartDashboard::PutNumber("FR Heading", currAngle); // FR = Field Relative
 				// frc::SmartDashboard::PutNumber("FR Target", targetAngle);
