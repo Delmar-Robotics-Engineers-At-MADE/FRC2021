@@ -1052,6 +1052,8 @@ public:
 		// reset gyro angle
 		if ( reset_yaw_button_pressed ) {
 			ahrs->ZeroYaw();
+			m_leftfront.SetSelectedSensorPosition(0, kPIDLoopIdx, kTimeoutMs);
+			m_rightfront.SetSelectedSensorPosition(0, kPIDLoopIdx, kTimeoutMs);
 		}
 
 		double currAngle = (int)ahrs->GetAngle() % 360;  // angle accumulates past 360, so modulus
