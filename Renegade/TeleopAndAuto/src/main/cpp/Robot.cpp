@@ -474,7 +474,7 @@ public:
 		frc::SmartDashboard::PutNumber("shoot C2", kInitialShooterC2);
 		frc::SmartDashboard::PutNumber("shoot C3", kInitialShooterC3);
 		frc::SmartDashboard::PutNumber("shoot C4", kInitialShooterC4);
-		
+
 		// control panel colors
 		m_colorMatcher.AddColorMatch(kBlueTarget);
 		m_colorMatcher.AddColorMatch(kGreenTarget);
@@ -565,12 +565,6 @@ public:
 		double I_shooter = kItunedShooter;
 		double D_shooter = kDtunedShooter;
 		double F_shooter = kFtunedShooter;
-
-		// Galactic Search
-		std::string searchAngles = frc::SmartDashboard::GetString("S Angles", kSearchAnglesStrARed);
-		std::string searchPositions = frc::SmartDashboard::GetString("S Positions", kSearchPositionsStrARed);
-		m_search_angles = UnpackNumbers (searchAngles);
-		m_search_positions = UnpackNumbers (searchPositions);
 	
 		/* used to tune PID numbers */
 		double P = frc::SmartDashboard::GetNumber("kP", P_shooter);
@@ -611,6 +605,26 @@ public:
 		//     kAutoNameDefault);
 		std::cout << "Auto selected: " << m_autoSelected << std::endl;
 
+		// for Galactic Search
+		if (m_autoSelected == kAutoNameSearchARed) {
+			frc::SmartDashboard::PutString("S Angles", kSearchAnglesStrARed);
+			frc::SmartDashboard::PutString("S Positions", kSearchPositionsStrARed);
+		}
+		std::string searchAngles = frc::SmartDashboard::GetString("S Angles", kSearchAnglesStrARed);
+		std::string searchPositions = frc::SmartDashboard::GetString("S Positions", kSearchPositionsStrARed);
+		m_search_angles = UnpackNumbers (searchAngles);
+		m_search_positions = UnpackNumbers (searchPositions);
+		std::cout << "search angles: ";
+		for(std::vector<double>::iterator it = m_search_angles.begin(); 
+		  it != m_search_angles.end(); ++it) { std::cout << *it << " "; }
+		std::cout << std::endl;
+		std::cout << "search positions: ";
+		for(std::vector<double>::iterator it = m_search_positions.begin(); 
+		  it != m_search_positions.end(); ++it) { std::cout << *it << " "; }
+		std::cout << std::endl;
+		frc::SmartDashboard::PutString("S Ball angles", m_visionSubsystem->sortedBallAngles());
+
+		// important stuff for auto
 		if (m_autoSelected == kAutoNameShootAndMove) {
 			m_limetable->PutNumber("ledMode",3.0);
 		}

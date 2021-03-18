@@ -18,6 +18,7 @@ public:
     double distanceSecondClosestBall = 0.0;
     double angleSecondClosestBall = 0.0;
     double turnToNextBallAngle = 0.0;
+    std::string allBallsSorted = "";
 
     class Gamepiece{
     public:
@@ -32,6 +33,7 @@ public:
     public:
         Ball(std::vector<double> &box);
         virtual ~Ball(); // destructor
+        virtual bool operator < (const Ball& b) const; // comparison for sorting
     };
 
     std::shared_ptr<NetworkTable> table;
@@ -56,4 +58,5 @@ public:
     virtual void disposeBalls(std::vector<Ball*> balls);
     virtual void updateClosestBall();
     virtual void clearSecondClosestBall();
+    virtual std::string sortedBallAngles();
 };

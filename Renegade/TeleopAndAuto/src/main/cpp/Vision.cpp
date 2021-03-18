@@ -3,6 +3,7 @@
 
 #include "Vision.h"
 #include <iostream> // for std::cout
+#include <sstream> // for stringstream
 
 const static double kBallTrackSmoothingTime = 2.0;
 const static double kBallAngleTolerance = 0.8; // ignore up to this % fluctuation
@@ -23,6 +24,10 @@ VisionSubsystem::Ball::Ball(std::vector<double> &box)
 }
 
 VisionSubsystem::Ball::~Ball() { // destructor; nothing to do
+}
+
+bool VisionSubsystem::Ball::operator < (const Ball& b) const {  // comparator for sorting
+        return (distance < b.distance);
 }
 
 VisionSubsystem::VisionSubsystem()  // constructor
@@ -118,13 +123,13 @@ double ComputeTurnAngle (double a, double b, double theta) {
 void VisionSubsystem::updateClosestBall() {
     // frc::SmartDashboard::PutNumber("Power Cells", ballcount);
     int ballcount = getTotalBalls();
+    std::vector<VisionSubsystem::Ball*> balls = getBalls();
     bool noBallsForAWhile = m_timer.Get() > timeBallsLastSeen + kBallTrackSmoothingTime;
     if (ballcount == 0 && noBallsForAWhile) { // no balls for a while, so zero things out
         distanceClosestBall = 0.0;
         angleClosestBall = 0.0; 
         // don't zero out second closest info, because now is the time to turn toward it
-    } else for (int i = 0; i < ballcount; i++) {
-        std::vector<VisionSubsystem::Ball*> balls = getBalls();
+    } else for (uint i = 0; i < balls.size(); i++) {
         if (balls[i] != NULL) {
             if (   (distanceClosestBall == 0) /* seeing a ball for first time in a while */
                 || (balls[i]->distance < distanceClosestBall) ) { /* or new ball is closer than old ball */
@@ -153,6 +158,19 @@ void VisionSubsystem::updateClosestBall() {
         }
         disposeBalls(balls);
     }
+}
+
+std::string VisionSubsystem::sortedBallAngles() {
+    std::vector<VisionSubsystem::Ball*> balls = getBalls();
+    std::sort(balls.begin(), balls.end());  // uses custom operator < for comparison
+    std::stringstream ss;
+    for(std::vector<VisionSubsystem::Ball*>::iterator it = balls.begin(); 
+      it != balls.end(); ++it) { 
+        ss << (*it)->distance << " "; 
+    }
+    std::string result = ss.str();
+    disposeBalls(balls);
+    return result;
 }
 
 // call this after turn to next ball is complete
