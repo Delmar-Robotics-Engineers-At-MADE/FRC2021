@@ -105,6 +105,9 @@ using namespace frc;
 	const static double kPtunedGyro = 0.05;
 	const static double kItunedGyro = 0.0;
 	const static double kDtunedGyro = 0.0;
+	const static double kPtunedSearch = 0.05;
+	const static double kItunedSearch = 0.0;
+	const static double kDtunedSearch = 0.0;
 	const static double kPtunedPixy = 0.01;
 	const static double kItunedPixy = 0.0;
 	const static double kDtunedPixy = 0.0;
@@ -120,6 +123,13 @@ using namespace frc;
 	const static double kFieldRelDriveSmoothTime = 0.4;
 	const static double kHeadingDiscontinuityZone = 6; // degrees either side of 0
 	const static double kTargetDiscontinuityZone = 15; // degrees either side of 0
+
+	// for Galactic Search
+	std::string kSearchAnglesStrARed = "19.0 -56.5";
+	std::string kSearchPositionsStrARed = "-24056 -37076";
+
+
+/********************************************** main class  ********************************************/
 
 class Robot: public TimedRobot {
 
@@ -215,8 +225,23 @@ class Robot: public TimedRobot {
 	};
 	IntakeStates m_intake_state = kBreachEmpty;
 
+	// state machine for galactic search
+	enum SearchStates {
+		kSearchStart = 0, 
+		kSearchBallCollected1,
+		kSearchTurningToBall2,
+		kSearchDrivingToBall2,
+		kSearchBallCollected2,
+		kSearchTurningToBall3,
+		kSearchDrivingToBall3,
+		kSearchBallCollected3,
+		kSearchComplete
+	};
+	SearchStates m_search_state = kSearchStart;
+
 	// pid and timer
     frc2::PIDController *m_pidController_gyro; // for orienting robot with gyro
+    frc2::PIDController *m_pidController_search; // for driving to power cells
 	frc2::PIDController *m_pidController_limelight_robot;
 	frc2::PIDController *m_pidController_limelight_turret;
 	frc2::PIDController *m_pidController_pixycam;
@@ -227,7 +252,7 @@ class Robot: public TimedRobot {
 	std::shared_ptr<NetworkTable> m_pixytable;  // for Pixy Cam
 
 	// misc members
-    double rotateToAngleRate;           // Current rotation rate
+    double m_rotate_to_angle_rate;           // Current rotation rate
     // double speed_factor = 0.5;
 	frc::SendableChooser<std::string> m_chooser;
 	frc::SendableChooser<std::string> m_chooser_options_dir;
@@ -237,6 +262,10 @@ class Robot: public TimedRobot {
 	const std::string kAutoNameMoveOnly = "Move Only";
 	const std::string kAutoNameJustInit = "Just Initialize";
 	const std::string kAutoNameShootAndMove = "Shoot/Move";
+	const std::string kAutoNameSearchARed = "Search A Red";
+	const std::string kAutoNameSearchBRed = "Search B Red";
+	const std::string kAutoNameSearchABlue = "Search A Blue";
+	const std::string kAutoNameSearchBBlue = "Search B Blue";
 	const std::string kAutoOptionForward = "Forward";
 	const std::string kAutoOptionBackward = "Backard";
 	const std::string kAutoOptionNoMove = "No Move";
@@ -250,6 +279,10 @@ class Robot: public TimedRobot {
 	std::string m_autoSelected_options_wait;
 	bool m_do_once_inited = false;
 	bool m_need_to_reset_coast = false;
+
+	// Galactic Search
+	std::vector <double> m_search_angles;
+	std::vector <double> m_search_positions;
 
 	// vision and field relative
 	double m_field_rel_timer;
@@ -276,6 +309,8 @@ class Robot: public TimedRobot {
 	}
 
 public:
+
+/********************************************** initialization  ********************************************/
 
 	void RobotInit() {
 
@@ -448,13 +483,17 @@ public:
 
 		/********************** stuff ************************/
 
-		rotateToAngleRate = 0.0f;
+		m_rotate_to_angle_rate = 0.0f;
 		m_robotDrive.SetExpiration(0.1);
 
 		m_chooser.SetDefaultOption(kAutoNameShootAndMove, kAutoNameShootAndMove);
 		m_chooser.AddOption(kAutoNameMoveOnly, kAutoNameMoveOnly);
 		m_chooser.AddOption(kAutoNameJustInit, kAutoNameJustInit);
 		m_chooser.AddOption(kAutoNameTestWheels, kAutoNameTestWheels);
+		m_chooser.AddOption(kAutoNameSearchARed, kAutoNameSearchARed);
+		m_chooser.AddOption(kAutoNameSearchBRed, kAutoNameSearchBRed);
+		m_chooser.AddOption(kAutoNameSearchABlue, kAutoNameSearchABlue);
+		m_chooser.AddOption(kAutoNameSearchBBlue, kAutoNameSearchBBlue);
 		m_chooser_options_dir.SetDefaultOption(kAutoOptionForward,kAutoOptionForward);
 		m_chooser_options_dir.AddOption(kAutoOptionBackward, kAutoOptionBackward);
 		m_chooser_options_dir.AddOption(kAutoOptionNoMove, kAutoOptionNoMove);
@@ -467,6 +506,127 @@ public:
 		frc::SmartDashboard::PutData("Auto Fast?", &m_chooser_options_speed);
 		frc::SmartDashboard::PutData("Auto Wait?", &m_chooser_options_wait);
 	}
+
+
+	void TeleopInit() {
+		DoOnceInit();
+		RepeatableInit();
+		m_wheel_state = kUnknownState;
+		m_starting_color = kNoColor;
+		m_half_rotation_count = 0;
+		m_intake_state = kBreachEmpty;
+		
+		// braking mode
+		m_leftfront.SetNeutralMode(NeutralMode::Coast);  // was brake in 2020
+		m_leftrear.SetNeutralMode(NeutralMode::Coast);
+		m_rightfront.SetNeutralMode(NeutralMode::Coast);
+		m_rightrear.SetNeutralMode(NeutralMode::Coast);
+	}
+
+	void DoOnceInit() {
+		if (!m_do_once_inited) {
+
+			ahrs->ZeroYaw();				
+			
+			// PIDs
+			m_pidController_gyro = new frc2::PIDController (kPtunedGyro, kItunedGyro, kDtunedGyro);
+			m_pidController_gyro->SetTolerance(8, 8);  // within 8 degrees of direction is considered on set point
+			m_pidController_search = new frc2::PIDController (kPtunedSearch, kItunedSearch, kDtunedSearch);
+			m_pidController_search->SetTolerance(1000, 0);  // within 1000 units is considered on set point for posiiton
+			m_pidController_limelight_robot = new frc2::PIDController (kPtunedGyro, kItunedGyro, kDtunedGyro);
+			m_pidController_limelight_robot->SetTolerance(kLimelightTolerance, kLimelightTolerance);  // within 8 degrees of target is considered on set point
+			m_pidController_limelight_turret = new frc2::PIDController (kPturret, kIturret, kDturret);
+			m_pidController_limelight_turret->SetTolerance(kLimelightTolerance, kLimelightTolerance);  // within 8 degrees of target is considered on set point
+			m_pidController_limelight_turret->SetSetpoint(kLimelightCenter);
+			m_pidController_pixycam = new frc2::PIDController (kPtunedPixy, kItunedPixy, kDtunedPixy);
+			m_pidController_pixycam->SetTolerance(kPixyTolerance, kPixyTolerance);  // within 8 degrees of target is considered on set point
+			m_pidController_pixycam->SetSetpoint(0);  // always use same setpoint
+
+			// position turret
+			MoveTurretToStartingPosition();
+		}
+
+		m_do_once_inited = true;
+	}
+
+	std::vector <double> UnpackNumbers (std::string packedNumbers) {
+		std::stringstream numberStream(packedNumbers);
+		std::vector <double> result;
+		std::string s;
+		while (getline(numberStream, s, ' ')) {
+			result.push_back(std::stod(s));
+		}
+		return result;
+	}
+
+	void RepeatableInit() {
+
+		double P_shooter = kPtunedShooter;
+		double I_shooter = kItunedShooter;
+		double D_shooter = kDtunedShooter;
+		double F_shooter = kFtunedShooter;
+
+		// Galactic Search
+		std::string searchAngles = frc::SmartDashboard::GetString("S Angles", kSearchAnglesStrARed);
+		std::string searchPositions = frc::SmartDashboard::GetString("S Positions", kSearchPositionsStrARed);
+		m_search_angles = UnpackNumbers (searchAngles);
+		m_search_positions = UnpackNumbers (searchPositions);
+	
+		/* used to tune PID numbers */
+		double P = frc::SmartDashboard::GetNumber("kP", P_shooter);
+		double I = frc::SmartDashboard::GetNumber("kI", I_shooter);
+		double D = frc::SmartDashboard::GetNumber("kD", D_shooter);
+		double F = frc::SmartDashboard::GetNumber("kF", F_shooter);
+
+		// bring up shooter
+		// m_shooter_star->Set(ControlMode::Velocity, m_IdleShooterVelocity);
+		m_shooter_star->Set(ControlMode::PercentOutput, m_IdleShooterPower);
+		m_shooter_C1 = frc::SmartDashboard::GetNumber("shoot C1", kInitialShooterC1);
+		m_shooter_C2 = frc::SmartDashboard::GetNumber("shoot C2", kInitialShooterC2);
+		m_shooter_C3 = frc::SmartDashboard::GetNumber("shoot C3", kInitialShooterC3);
+		m_shooter_C4 = frc::SmartDashboard::GetNumber("shoot C4", kInitialShooterC4);
+
+		m_shooter_star->Config_kF(kPIDLoopIdx, F, kTimeoutMs); // was .1097  /* set closed loop gains in slot0 */
+		m_shooter_star->Config_kP(kPIDLoopIdx, P, kTimeoutMs); // was 0.22
+		m_shooter_star->Config_kI(kPIDLoopIdx, I, kTimeoutMs); // was 0
+		m_shooter_star->Config_kD(kPIDLoopIdx, D, kTimeoutMs); // was 0
+		frc::SmartDashboard::PutNumber("pid check F", F);
+
+		// position ponytail up
+		m_ponytail_solenoid.Set(frc::DoubleSolenoid::kForward);
+
+		// for smoothing field rel driving
+		m_timer.Reset();
+		m_timer.Start();
+	}
+
+	void AutonomousInit() {
+		DoOnceInit();
+		RepeatableInit();
+		m_autoSelected = m_chooser.GetSelected();
+		m_autoSelected_options_dir = m_chooser_options_dir.GetSelected();
+		m_autoSelected_options_speed = m_chooser_options_speed.GetSelected();
+		m_autoSelected_options_wait = m_chooser_options_wait.GetSelected();
+		// m_autoSelected = SmartDashboard::GetString("Auto Selector",
+		//     kAutoNameDefault);
+		std::cout << "Auto selected: " << m_autoSelected << std::endl;
+
+		if (m_autoSelected == kAutoNameShootAndMove) {
+			m_limetable->PutNumber("ledMode",3.0);
+		}
+		m_leftfront.SetSelectedSensorPosition(0, kPIDLoopIdx, kTimeoutMs);
+		m_rightfront.SetSelectedSensorPosition(0, kPIDLoopIdx, kTimeoutMs);
+		m_timer.Reset();
+		m_timer.Start();
+
+		// braking mode
+		m_leftfront.SetNeutralMode(NeutralMode::Brake);  // need brake when moving
+		m_leftrear.SetNeutralMode(NeutralMode::Brake);
+		m_rightfront.SetNeutralMode(NeutralMode::Brake);
+		m_rightrear.SetNeutralMode(NeutralMode::Brake);
+	}
+
+/********************************************** telo-op  ********************************************/
 
 	void RobotPeriodic() {
 		m_visionSubsystem->periodic();
@@ -629,80 +789,6 @@ public:
 		return result;
 	}
 
-	void TeleopInit() {
-		DoOnceInit();
-		RepeatableInit();
-		m_wheel_state = kUnknownState;
-		m_starting_color = kNoColor;
-		m_half_rotation_count = 0;
-		m_intake_state = kBreachEmpty;
-		
-		// braking mode
-		m_leftfront.SetNeutralMode(NeutralMode::Coast);  // was brake in 2020
-		m_leftrear.SetNeutralMode(NeutralMode::Coast);
-		m_rightfront.SetNeutralMode(NeutralMode::Coast);
-		m_rightrear.SetNeutralMode(NeutralMode::Coast);
-	}
-
-	void DoOnceInit() {
-		if (!m_do_once_inited) {
-
-			ahrs->ZeroYaw();				
-			
-			// PIDs
-			m_pidController_gyro = new frc2::PIDController (kPtunedGyro, kItunedGyro, kDtunedGyro);
-			m_pidController_gyro->SetTolerance(8, 8);  // within 8 degrees of direction is considered on set point
-			m_pidController_limelight_robot = new frc2::PIDController (kPtunedGyro, kItunedGyro, kDtunedGyro);
-			m_pidController_limelight_robot->SetTolerance(kLimelightTolerance, kLimelightTolerance);  // within 8 degrees of target is considered on set point
-			m_pidController_limelight_turret = new frc2::PIDController (kPturret, kIturret, kDturret);
-			m_pidController_limelight_turret->SetTolerance(kLimelightTolerance, kLimelightTolerance);  // within 8 degrees of target is considered on set point
-			m_pidController_limelight_turret->SetSetpoint(kLimelightCenter);
-			m_pidController_pixycam = new frc2::PIDController (kPtunedPixy, kItunedPixy, kDtunedPixy);
-			m_pidController_pixycam->SetTolerance(kPixyTolerance, kPixyTolerance);  // within 8 degrees of target is considered on set point
-			m_pidController_pixycam->SetSetpoint(0);  // always use same setpoint
-
-			// position turret
-			MoveTurretToStartingPosition();
-		}
-
-		m_do_once_inited = true;
-	}
-
-	void RepeatableInit() {
-
-		double P_shooter = kPtunedShooter;
-		double I_shooter = kItunedShooter;
-		double D_shooter = kDtunedShooter;
-		double F_shooter = kFtunedShooter;
-	
-		/* used to tune PID numbers */
-		double P = frc::SmartDashboard::GetNumber("kP", P_shooter);
-		double I = frc::SmartDashboard::GetNumber("kI", I_shooter);
-		double D = frc::SmartDashboard::GetNumber("kD", D_shooter);
-		double F = frc::SmartDashboard::GetNumber("kF", F_shooter);
-
-		// bring up shooter
-		// m_shooter_star->Set(ControlMode::Velocity, m_IdleShooterVelocity);
-		m_shooter_star->Set(ControlMode::PercentOutput, m_IdleShooterPower);
-		m_shooter_C1 = frc::SmartDashboard::GetNumber("shoot C1", kInitialShooterC1);
-		m_shooter_C2 = frc::SmartDashboard::GetNumber("shoot C2", kInitialShooterC2);
-		m_shooter_C3 = frc::SmartDashboard::GetNumber("shoot C3", kInitialShooterC3);
-		m_shooter_C4 = frc::SmartDashboard::GetNumber("shoot C4", kInitialShooterC4);
-
-		m_shooter_star->Config_kF(kPIDLoopIdx, F, kTimeoutMs); // was .1097  /* set closed loop gains in slot0 */
-		m_shooter_star->Config_kP(kPIDLoopIdx, P, kTimeoutMs); // was 0.22
-		m_shooter_star->Config_kI(kPIDLoopIdx, I, kTimeoutMs); // was 0
-		m_shooter_star->Config_kD(kPIDLoopIdx, D, kTimeoutMs); // was 0
-		frc::SmartDashboard::PutNumber("pid check F", F);
-
-		// position ponytail up
-		m_ponytail_solenoid.Set(frc::DoubleSolenoid::kForward);
-
-		// for smoothing field rel driving
-		m_timer.Reset();
-		m_timer.Start();
-	}
-
 	std::string ColorToString (frc::Color color) {
 		std::string result;
 		if (color == kBlueTarget) {
@@ -813,35 +899,35 @@ public:
 			m_intake.Set(0.0);
 			m_vert_conveyer.Set(0.0);
 		} else { // turret on-deck empty; ok to intake
-			m_vert_conveyer.Set(-kConveyerSpeed);
+			// was... m_vert_conveyer.Set(-kConveyerSpeed);
 			// frc::SmartDashboard::PutNumber("intake state", m_intake_state);
 			switch (m_intake_state) {
 				case kBallJustArrived:
+					/* both on */ m_intake.Set(-kIntakeSpeed); m_vert_conveyer.Set(-kConveyerSpeed);
 					m_timer.Reset();
 					m_timer.Start();
-					m_intake_state = kBallInBreach;
+					m_intake_state = kBallInBreach; 
 					break;
 				case kBallInBreach: // run long enough to get ball into conveyer, then stop intake
-					if (m_timer.Get() < kIntakeDelayArrival) {
-						m_intake.Set(-kIntakeSpeed);
-					} else {
+					/* both on */ m_intake.Set(-kIntakeSpeed); m_vert_conveyer.Set(-kConveyerSpeed);
+					if (m_timer.Get() >= kIntakeDelayArrival) {
 						m_intake_state = kBallJustLeft;
-						m_intake.Set(-0.0);
 					}
 					break;
-				case kBallJustLeft:  //  keep conveyer stopped for a period to create space
-					if (m_timer.Get() < kIntakeDelayArrival + kIntakeDelayGap) {
-						m_intake.Set(-0.0);
-					} else { // ok to run conveyer now
+				case kBallJustLeft:  //  keep intake stopped for a period to create space
+					// experiment not making this gap anymore
+					/* both on */ m_intake.Set(-kIntakeSpeed); m_vert_conveyer.Set(-kConveyerSpeed);
+					if (m_timer.Get() >= kIntakeDelayArrival + kIntakeDelayGap) {
 						m_intake_state = kBreachEmpty;
 					}
 					break;
 				case kBreachEmpty:
+					/* conveyer stopped */ m_intake.Set(-kIntakeSpeed); m_vert_conveyer.Set(0);
 					if (eye_intake.Get()) { // a ball just arrived at breach
 						m_intake_state = kBallJustArrived;
 					} else { // no balls yet
-						m_intake.Set(-kIntakeSpeed);
-						m_vert_conveyer.Set(-kConveyerSpeed);
+						// don't run converer until another ball arrives
+						// was... m_vert_conveyer.Set(-kConveyerSpeed);
 					}
 			} // switch
 		} // if turret is not on-deck
@@ -1041,11 +1127,7 @@ public:
 		bool conveyer_in_button =  m_stick_copilot->GetRawButton(6);
 		bool conveyer_out_button =  m_stick_copilot->GetRawButton(8);
 
-		/****************************************** limelight *****************************************************/
-
-
-
-		/********************************************** move stuff ********************************************/
+		/******************* move stuff **********************/
 
 		//m_turret->Set(ControlMode::PercentOutput, shooter_Y);  // temporary test
 		
@@ -1109,24 +1191,24 @@ public:
 
 				// use pid for motor speed, unless in "discontinuity zone" near 0
 				if (isInDiscontinuityZone(currAngle, targetAngle)) {
-					rotateToAngleRate = 0.0;   // avoid bouncing back and forth as heading flips between 1 and 355
+					m_rotate_to_angle_rate = 0.0;   // avoid bouncing back and forth as heading flips between 1 and 355
 				} else {
-					rotateToAngleRate = m_pidController_gyro->Calculate(ahrs->GetAngle());
+					m_rotate_to_angle_rate = m_pidController_gyro->Calculate(ahrs->GetAngle());
 				}
 				// trim the speed so it's not too fast
-				rotateToAngleRate = TrimSpeed(rotateToAngleRate, kMaxRotateRate);
+				m_rotate_to_angle_rate = TrimSpeed(m_rotate_to_angle_rate, kMaxRotateRate);
 				// if heading is quadrant I and target is IV, or vice versa, flip motor direction
 				if ( (quadrant(currAngle) == 1 && quadrant(targetAngle) == 4) 
 					|| (quadrant(currAngle) == 4 && quadrant(targetAngle) == 1)) {
-					rotateToAngleRate = -rotateToAngleRate;
+					m_rotate_to_angle_rate = -m_rotate_to_angle_rate;
 				} else if (abs(currAngle - targetAngle) > 180) {
 					// if delta angle > 180, flip motor direction so we take shorter route
-					rotateToAngleRate = -rotateToAngleRate;
+					m_rotate_to_angle_rate = -m_rotate_to_angle_rate;
 				}
 
-				double left_power = rotateToAngleRate;
-				double right_power = -rotateToAngleRate;
-				if (abs(kMaxRotateRate - abs(rotateToAngleRate)) / kMaxRotateRate > 0.4) { 
+				double left_power = m_rotate_to_angle_rate;
+				double right_power = -m_rotate_to_angle_rate;
+				if (abs(kMaxRotateRate - abs(m_rotate_to_angle_rate)) / kMaxRotateRate > 0.4) { 
 					m_field_rel_timer = m_timer.Get(); // once decide it's ok to move forward, don't stutter
 				}
 				// frc::SmartDashboard::PutNumber("FR Timer", m_field_rel_timer);
@@ -1210,34 +1292,112 @@ public:
 		// frc::SmartDashboard::PutNumber("turret pos3", m_turret->GetSelectedSensorPosition(0));
 	}
 
-	void AutonomousInit() {
-		DoOnceInit();
-		RepeatableInit();
-		m_autoSelected = m_chooser.GetSelected();
-		m_autoSelected_options_dir = m_chooser_options_dir.GetSelected();
-		m_autoSelected_options_speed = m_chooser_options_speed.GetSelected();
-		m_autoSelected_options_wait = m_chooser_options_wait.GetSelected();
-		// m_autoSelected = SmartDashboard::GetString("Auto Selector",
-		//     kAutoNameDefault);
-		std::cout << "Auto selected: " << m_autoSelected << std::endl;
 
-		if (m_autoSelected == kAutoNameShootAndMove) {
-			m_limetable->PutNumber("ledMode",3.0);
+/********************************************** autonomous ********************************************/
+
+	bool RotateToAngle (double targetAngle) {
+		bool result = false; // return true if we are close to target angle
+
+		m_pidController_gyro->SetSetpoint(targetAngle);
+		if (m_pidController_gyro->AtSetpoint()) {
+			m_robotDrive.TankDrive(0, 0, false);
+			m_pidController_gyro->Reset(); // clears out integral state, etc
+			result = true;
+
+		} else { // not close to target; keep turning
+			double rotateToAngleRate = m_pidController_gyro->Calculate(ahrs->GetAngle());
+
+			// trim the speed so it's not too fast
+			rotateToAngleRate = TrimSpeed(rotateToAngleRate, kMaxRotateRate);
+
+			m_robotDrive.TankDrive(rotateToAngleRate, -rotateToAngleRate, false);
 		}
-		m_leftfront.SetSelectedSensorPosition(0, kPIDLoopIdx, kTimeoutMs);
-		m_rightfront.SetSelectedSensorPosition(0, kPIDLoopIdx, kTimeoutMs);
-		m_timer.Reset();
-		m_timer.Start();
 
-		// braking mode
-		m_leftfront.SetNeutralMode(NeutralMode::Brake);  // need brake when moving
-		m_leftrear.SetNeutralMode(NeutralMode::Brake);
-		m_rightfront.SetNeutralMode(NeutralMode::Brake);
-		m_rightrear.SetNeutralMode(NeutralMode::Brake);
+		return result;
+	}
+
+	bool DriveToPosition (double pos) {
+		bool result = false; // return true if we are close to target position
+
+		m_pidController_search->SetSetpoint(pos);
+		if (m_pidController_search->AtSetpoint()) {
+			m_robotDrive.TankDrive(0, 0, false);
+			m_pidController_search->Reset(); // clears out integral state, etc
+			result = true;
+
+		} else { // not close to target; keep moving
+			double speed = m_pidController_search->Calculate(m_leftfront.GetSelectedSensorPosition(0));
+
+			// trim the speed so it's not too fast
+			speed = TrimSpeed(speed, kMaxRotateRate);
+
+			m_robotDrive.TankDrive(speed, speed, false);
+		}
+
+		return result;
+	}
+
+	void AutoMoveOffLine (bool moveForward, bool moveFast) {
+		double motor_speed = 0.0;
+		if (moveForward) {
+			motor_speed = kAutoDriveSpeed;
+		} else {
+			motor_speed = -kAutoDriveSpeed;
+		}				
+		if (moveFast) {
+			motor_speed *= 2;
+		}
+		if (abs(m_leftfront.GetSelectedSensorPosition(0)) < kAutoDriveDistance) {
+			m_robotDrive.TankDrive(motor_speed, motor_speed);
+			// frc::SmartDashboard::PutString("Auto Mode", "moving");
+		} else {
+			m_robotDrive.TankDrive(0, 0);
+			// frc::SmartDashboard::PutString("Auto Mode", "done moving");
+		}
 	}
 
 	void AutonomousPeriodic() {
-		if (m_autoSelected == kAutoNameTestWheels) {
+		if (m_autoSelected == kAutoNameSearchARed) {
+			if (m_timer.Get() < 3.0) {
+				AutoMoveOffLine(true, true);
+			} else { // done dropping intake; start searching
+				AutoIntakeBalls();
+				// pause to pick up powercell 1
+				if (m_timer.Get() > 4.0) {
+					bool doneDriving = false; bool doneRotating = false;
+					switch (m_search_state) {
+						case kSearchStart:
+							m_search_state = kSearchBallCollected1;
+							break;
+						case kSearchBallCollected1:
+							m_search_state = kSearchTurningToBall2;
+							break;
+						case kSearchTurningToBall2:
+							doneRotating = RotateToAngle(m_search_angles[0]);
+							if (doneRotating) {m_search_state = kSearchDrivingToBall2;}
+							break;
+						case kSearchDrivingToBall2:
+							doneDriving = DriveToPosition(m_search_positions[0]);
+							if (doneDriving) {m_search_state = kSearchTurningToBall3;}
+							break;
+						case kSearchTurningToBall3:
+							doneRotating = RotateToAngle(m_search_angles[1]);
+							if (doneRotating) {m_search_state = kSearchDrivingToBall3;}
+							break;
+						case kSearchDrivingToBall3:
+							doneDriving = DriveToPosition(m_search_positions[1]);
+							if (doneDriving) {m_search_state = kSearchComplete;}
+							break;
+						case kSearchComplete:
+						default: // done
+							m_robotDrive.TankDrive(0, 0);
+							break;
+					}
+				}
+
+			}
+
+		} else if (m_autoSelected == kAutoNameTestWheels) {
 			// simple motion to validate motor configuration
 			// Drive for 2 seconds
 			if (m_timer.Get() < 2.0) {
@@ -1252,22 +1412,8 @@ public:
 			m_robotDrive.ArcadeDrive(0.0, 0.0);
 			}
 		} else if (m_autoSelected == kAutoNameMoveOnly) {
-				double motor_speed = 0.0;
-				if (m_autoSelected_options_dir == kAutoOptionForward) {
-					motor_speed = kAutoDriveSpeed;
-				} else if (m_autoSelected_options_dir == kAutoOptionBackward) {
-					motor_speed = -kAutoDriveSpeed;
-				}				
-				if (m_autoSelected_options_speed == kAutoOptionFast) {
-					motor_speed *= 2;
-				}
-				if (abs(m_leftfront.GetSelectedSensorPosition(0)) < kAutoDriveDistance) {
-					m_robotDrive.TankDrive(motor_speed, motor_speed);
-					// frc::SmartDashboard::PutString("Auto Mode", "moving");
-				} else {
-					m_robotDrive.TankDrive(0, 0);
-					// frc::SmartDashboard::PutString("Auto Mode", "done moving");
-				}
+			AutoMoveOffLine(m_autoSelected_options_dir == kAutoOptionForward, 
+							m_autoSelected_options_speed == kAutoOptionFast);
 		} else if (m_autoSelected == kAutoNameShootAndMove) {
 			// frc::SmartDashboard::PutString("Auto Mode", "kAutoNameShootAndMove");
 			if (m_autoSelected_options_wait == kAutoOptionWait && m_timer.Get() < 3) {
