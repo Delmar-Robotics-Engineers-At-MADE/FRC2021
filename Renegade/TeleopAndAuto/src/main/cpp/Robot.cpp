@@ -532,7 +532,7 @@ public:
 			m_pidController_gyro = new frc2::PIDController (kPtunedGyro, kItunedGyro, kDtunedGyro);
 			m_pidController_gyro->SetTolerance(8, 8);  // within 8 degrees of direction is considered on set point
 			m_pidController_search = new frc2::PIDController (kPtunedSearch, kItunedSearch, kDtunedSearch);
-			m_pidController_search->SetTolerance(1000, 0);  // within 1000 units is considered on set point for posiiton
+			m_pidController_search->SetTolerance(3000);  // within this  many units is considered on set point for posiiton
 			m_pidController_limelight_robot = new frc2::PIDController (kPtunedGyro, kItunedGyro, kDtunedGyro);
 			m_pidController_limelight_robot->SetTolerance(kLimelightTolerance, kLimelightTolerance);  // within 8 degrees of target is considered on set point
 			m_pidController_limelight_turret = new frc2::PIDController (kPturret, kIturret, kDturret);
@@ -622,12 +622,13 @@ public:
 		for(std::vector<double>::iterator it = m_search_positions.begin(); 
 		  it != m_search_positions.end(); ++it) { std::cout << *it << " "; }
 		std::cout << std::endl;
-		frc::SmartDashboard::PutString("S Ball angles", m_visionSubsystem->sortedBallAngles());
+		// frc::SmartDashboard::PutString("S Ball angles", m_visionSubsystem->sortedBallAngles());
 
 		// important stuff for auto
 		if (m_autoSelected == kAutoNameShootAndMove) {
 			m_limetable->PutNumber("ledMode",3.0);
 		}
+		ahrs->ZeroYaw();
 		m_leftfront.SetSelectedSensorPosition(0, kPIDLoopIdx, kTimeoutMs);
 		m_rightfront.SetSelectedSensorPosition(0, kPIDLoopIdx, kTimeoutMs);
 		m_timer.Reset();
@@ -1310,6 +1311,7 @@ public:
 /********************************************** autonomous ********************************************/
 
 	bool RotateToAngle (double targetAngle) {
+		std::cout << "Rotating to: " << targetAngle << std::endl;
 		bool result = false; // return true if we are close to target angle
 
 		m_pidController_gyro->SetSetpoint(targetAngle);
@@ -1331,6 +1333,7 @@ public:
 	}
 
 	bool DriveToPosition (double pos) {
+		std::cout << "Driving to: " << pos << std::endl;
 		bool result = false; // return true if we are close to target position
 
 		m_pidController_search->SetSetpoint(pos);
@@ -1340,7 +1343,9 @@ public:
 			result = true;
 
 		} else { // not close to target; keep moving
-			double speed = m_pidController_search->Calculate(m_leftfront.GetSelectedSensorPosition(0));
+			std::cout << "Still driving, pos= " << m_leftfront.GetSelectedSensorPosition(0) << std::endl;
+			//encoder values are negative for the left motor, so invert this
+			double speed = -m_pidController_search->Calculate(m_leftfront.GetSelectedSensorPosition(0));
 
 			// trim the speed so it's not too fast
 			speed = TrimSpeed(speed, kMaxRotateRate);
@@ -1387,18 +1392,22 @@ public:
 							m_search_state = kSearchTurningToBall2;
 							break;
 						case kSearchTurningToBall2:
+							std::cout << "state= turning to: 2" << std::endl;
 							doneRotating = RotateToAngle(m_search_angles[0]);
 							if (doneRotating) {m_search_state = kSearchDrivingToBall2;}
 							break;
 						case kSearchDrivingToBall2:
+							std::cout << "state= driving to: 2" << std::endl;
 							doneDriving = DriveToPosition(m_search_positions[0]);
 							if (doneDriving) {m_search_state = kSearchTurningToBall3;}
 							break;
 						case kSearchTurningToBall3:
+							std::cout << "state= turning to: 3" << std::endl;
 							doneRotating = RotateToAngle(m_search_angles[1]);
 							if (doneRotating) {m_search_state = kSearchDrivingToBall3;}
 							break;
 						case kSearchDrivingToBall3:
+							std::cout << "state= driving to: 3" << std::endl;
 							doneDriving = DriveToPosition(m_search_positions[1]);
 							if (doneDriving) {m_search_state = kSearchComplete;}
 							break;

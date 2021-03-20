@@ -4,6 +4,7 @@
 #include "Vision.h"
 #include <iostream> // for std::cout
 #include <sstream> // for stringstream
+#include <frc/DriverStation.h>
 
 const static double kBallTrackSmoothingTime = 2.0;
 const static double kBallAngleTolerance = 0.8; // ignore up to this % fluctuation
@@ -161,15 +162,23 @@ void VisionSubsystem::updateClosestBall() {
 }
 
 std::string VisionSubsystem::sortedBallAngles() {
-    std::vector<VisionSubsystem::Ball*> balls = getBalls();
-    std::sort(balls.begin(), balls.end());  // uses custom operator < for comparison
-    std::stringstream ss;
-    for(std::vector<VisionSubsystem::Ball*>::iterator it = balls.begin(); 
-      it != balls.end(); ++it) { 
-        ss << (*it)->distance << " "; 
-    }
-    std::string result = ss.str();
-    disposeBalls(balls);
+    std::string result = "unknown";
+    try {
+        std::vector<VisionSubsystem::Ball*> balls = getBalls();
+        std::sort(balls.begin(), balls.end());  // uses custom operator < for comparison
+        std::stringstream ss;
+        for(std::vector<VisionSubsystem::Ball*>::iterator it = balls.begin(); 
+        it != balls.end(); ++it) { 
+            ss << (*it)->distance << " "; 
+        }
+        result = ss.str();
+        disposeBalls(balls);
+    } catch (std::exception& ex ) {
+			std::string err_string = "Error sorting balls";
+			err_string += ex.what();
+			//DriverStation::ReportError(err_string.c_str());
+            std::cout <<err_string << std::endl;
+	}
     return result;
 }
 
