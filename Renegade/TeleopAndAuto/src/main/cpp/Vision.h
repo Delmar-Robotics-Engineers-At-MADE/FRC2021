@@ -12,13 +12,13 @@ class VisionSubsystem {
 private:
     frc::Timer m_timer;
     double timeBallsLastSeen = 0.0;
+    std::string allBallsSorted = "none";
 public:
     double distanceClosestBall = 0.0;
     double angleClosestBall = 0.0;
     double distanceSecondClosestBall = 0.0;
     double angleSecondClosestBall = 0.0;
     double turnToNextBallAngle = 0.0;
-    std::string allBallsSorted = "";
 
     class Gamepiece{
     public:
@@ -55,8 +55,10 @@ public:
 
     virtual int getTotalBalls();
     virtual std::vector<Ball*> getBalls();
+    virtual std::vector<Ball*> getFakeBalls();
     virtual void disposeBalls(std::vector<Ball*> balls);
     virtual void updateClosestBall();
     virtual void clearSecondClosestBall();
-    virtual std::string sortedBallAngles();
+    virtual std::string sortBallAngles();
+    virtual std::string sortFakeBallAngles();
 };

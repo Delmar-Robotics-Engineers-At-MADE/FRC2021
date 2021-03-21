@@ -47,8 +47,8 @@ using namespace frc;
 	const static double kConveyerSpeed = 0.95;
 	//const static double kFirstConveyerSpeed = 0.95;
 	const static double kIntakeSpeed = 0.7;
-	const static double kIntakeDelayArrival = 1;
-	const static double kIntakeDelayGap = 0.05;
+	const static double kIntakeDelayArrival = 0.4; // in 2020 was 1;
+	const static double kIntakeDelayGap = 0.0; // in 2020 was 0.05;
 
 	const static double kIdleShooterPower = 0.25; 
 	const static double kIdleShooterVelocity = 6000; 
@@ -245,7 +245,7 @@ class Robot: public TimedRobot {
 	frc2::PIDController *m_pidController_limelight_robot;
 	frc2::PIDController *m_pidController_limelight_turret;
 	frc2::PIDController *m_pidController_pixycam;
-    frc::Timer m_timer;
+    frc::Timer m_timer, m_timer2;
 
 	// limelight
 	std::shared_ptr<NetworkTable> m_limetable;  // for LimeLight
@@ -532,7 +532,7 @@ public:
 			m_pidController_gyro = new frc2::PIDController (kPtunedGyro, kItunedGyro, kDtunedGyro);
 			m_pidController_gyro->SetTolerance(8, 8);  // within 8 degrees of direction is considered on set point
 			m_pidController_search = new frc2::PIDController (kPtunedSearch, kItunedSearch, kDtunedSearch);
-			m_pidController_search->SetTolerance(3000);  // within this  many units is considered on set point for posiiton
+			m_pidController_search->SetTolerance(1000);  // within this  many units is considered on set point for posiiton
 			m_pidController_limelight_robot = new frc2::PIDController (kPtunedGyro, kItunedGyro, kDtunedGyro);
 			m_pidController_limelight_robot->SetTolerance(kLimelightTolerance, kLimelightTolerance);  // within 8 degrees of target is considered on set point
 			m_pidController_limelight_turret = new frc2::PIDController (kPturret, kIturret, kDturret);
@@ -622,7 +622,7 @@ public:
 		for(std::vector<double>::iterator it = m_search_positions.begin(); 
 		  it != m_search_positions.end(); ++it) { std::cout << *it << " "; }
 		std::cout << std::endl;
-		// frc::SmartDashboard::PutString("S Ball angles", m_visionSubsystem->sortedBallAngles());
+		frc::SmartDashboard::PutString("S Ball angles", m_visionSubsystem->sortBallAngles());
 
 		// important stuff for auto
 		if (m_autoSelected == kAutoNameShootAndMove) {
@@ -633,6 +633,8 @@ public:
 		m_rightfront.SetSelectedSensorPosition(0, kPIDLoopIdx, kTimeoutMs);
 		m_timer.Reset();
 		m_timer.Start();
+		m_timer2.Reset();
+		m_timer2.Start();
 
 		// braking mode
 		m_leftfront.SetNeutralMode(NeutralMode::Brake);  // need brake when moving
@@ -918,18 +920,21 @@ public:
 			// frc::SmartDashboard::PutNumber("intake state", m_intake_state);
 			switch (m_intake_state) {
 				case kBallJustArrived:
+					frc::SmartDashboard::PutNumber("AB just arrived", true);
 					/* both on */ m_intake.Set(-kIntakeSpeed); m_vert_conveyer.Set(-kConveyerSpeed);
 					m_timer.Reset();
 					m_timer.Start();
 					m_intake_state = kBallInBreach; 
 					break;
 				case kBallInBreach: // run long enough to get ball into conveyer, then stop intake
+					frc::SmartDashboard::PutNumber("AB in breach", true);
 					/* both on */ m_intake.Set(-kIntakeSpeed); m_vert_conveyer.Set(-kConveyerSpeed);
 					if (m_timer.Get() >= kIntakeDelayArrival) {
 						m_intake_state = kBallJustLeft;
 					}
 					break;
 				case kBallJustLeft:  //  keep intake stopped for a period to create space
+					frc::SmartDashboard::PutNumber("AB just left", true);
 					// experiment not making this gap anymore
 					/* both on */ m_intake.Set(-kIntakeSpeed); m_vert_conveyer.Set(-kConveyerSpeed);
 					if (m_timer.Get() >= kIntakeDelayArrival + kIntakeDelayGap) {
@@ -937,6 +942,7 @@ public:
 					}
 					break;
 				case kBreachEmpty:
+					frc::SmartDashboard::PutNumber("AB empty", true);
 					/* conveyer stopped */ m_intake.Set(-kIntakeSpeed); m_vert_conveyer.Set(0);
 					if (eye_intake.Get()) { // a ball just arrived at breach
 						m_intake_state = kBallJustArrived;
@@ -1311,7 +1317,7 @@ public:
 /********************************************** autonomous ********************************************/
 
 	bool RotateToAngle (double targetAngle) {
-		std::cout << "Rotating to: " << targetAngle << std::endl;
+		// std::cout << "Rotating to: " << targetAngle << std::endl;
 		bool result = false; // return true if we are close to target angle
 
 		m_pidController_gyro->SetSetpoint(targetAngle);
@@ -1333,7 +1339,7 @@ public:
 	}
 
 	bool DriveToPosition (double pos) {
-		std::cout << "Driving to: " << pos << std::endl;
+		// std::cout << "Driving to: " << pos << std::endl;
 		bool result = false; // return true if we are close to target position
 
 		m_pidController_search->SetSetpoint(pos);
@@ -1343,7 +1349,7 @@ public:
 			result = true;
 
 		} else { // not close to target; keep moving
-			std::cout << "Still driving, pos= " << m_leftfront.GetSelectedSensorPosition(0) << std::endl;
+			// std::cout << "Still driving, pos= " << m_leftfront.GetSelectedSensorPosition(0) << std::endl;
 			//encoder values are negative for the left motor, so invert this
 			double speed = -m_pidController_search->Calculate(m_leftfront.GetSelectedSensorPosition(0));
 
@@ -1377,12 +1383,12 @@ public:
 
 	void AutonomousPeriodic() {
 		if (m_autoSelected == kAutoNameSearchARed) {
-			if (m_timer.Get() < 3.0) {
+			if (m_timer2.Get() < 3.0) {
 				AutoMoveOffLine(true, true);
 			} else { // done dropping intake; start searching
 				AutoIntakeBalls();
 				// pause to pick up powercell 1
-				if (m_timer.Get() > 4.0) {
+				if (m_timer2.Get() > 4.0) {
 					bool doneDriving = false; bool doneRotating = false;
 					switch (m_search_state) {
 						case kSearchStart:
@@ -1392,22 +1398,22 @@ public:
 							m_search_state = kSearchTurningToBall2;
 							break;
 						case kSearchTurningToBall2:
-							std::cout << "state= turning to: 2" << std::endl;
+							//std::cout << "state= turning to: 2" << std::endl;
 							doneRotating = RotateToAngle(m_search_angles[0]);
 							if (doneRotating) {m_search_state = kSearchDrivingToBall2;}
 							break;
 						case kSearchDrivingToBall2:
-							std::cout << "state= driving to: 2" << std::endl;
+							//std::cout << "state= driving to: 2" << std::endl;
 							doneDriving = DriveToPosition(m_search_positions[0]);
 							if (doneDriving) {m_search_state = kSearchTurningToBall3;}
 							break;
 						case kSearchTurningToBall3:
-							std::cout << "state= turning to: 3" << std::endl;
+							//std::cout << "state= turning to: 3" << std::endl;
 							doneRotating = RotateToAngle(m_search_angles[1]);
 							if (doneRotating) {m_search_state = kSearchDrivingToBall3;}
 							break;
 						case kSearchDrivingToBall3:
-							std::cout << "state= driving to: 3" << std::endl;
+							//std::cout << "state= driving to: 3" << std::endl;
 							doneDriving = DriveToPosition(m_search_positions[1]);
 							if (doneDriving) {m_search_state = kSearchComplete;}
 							break;
@@ -1423,11 +1429,11 @@ public:
 		} else if (m_autoSelected == kAutoNameTestWheels) {
 			// simple motion to validate motor configuration
 			// Drive for 2 seconds
-			if (m_timer.Get() < 2.0) {
+			if (m_timer2.Get() < 2.0) {
 			m_robotDrive.TankDrive(0.5, 0); // left motor only
-			} else if (m_timer.Get() < 4.0) {
+			} else if (m_timer2.Get() < 4.0) {
 			m_robotDrive.TankDrive(0, 0.5); // right motor only
-			} else if (m_timer.Get() < 6.0) {
+			} else if (m_timer2.Get() < 6.0) {
 			// Drive forwards half speed
 			m_robotDrive.ArcadeDrive(0.5, 0.0);
 			} else {
@@ -1439,10 +1445,10 @@ public:
 							m_autoSelected_options_speed == kAutoOptionFast);
 		} else if (m_autoSelected == kAutoNameShootAndMove) {
 			// frc::SmartDashboard::PutString("Auto Mode", "kAutoNameShootAndMove");
-			if (m_autoSelected_options_wait == kAutoOptionWait && m_timer.Get() < 3) {
+			if (m_autoSelected_options_wait == kAutoOptionWait && m_timer2.Get() < 3) {
 				// frc::SmartDashboard::PutString("Auto Mode", "waiting");
 				// do nothing for x secs		
-			} else if (m_timer.Get() < 6) {
+			} else if (m_timer2.Get() < 6) {
 				// frc::SmartDashboard::PutString("Auto Mode", "shooting");
 				bool manual_conveyer_ok; double conveyer_speed;
 				OperateShooter(manual_conveyer_ok, conveyer_speed, false, false);
