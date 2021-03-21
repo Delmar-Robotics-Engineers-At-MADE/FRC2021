@@ -80,7 +80,7 @@ std::vector<VisionSubsystem::Ball*> VisionSubsystem::getBalls()
     // std::cout << "Start of getBalls" << std::endl;
     int index = 0;
     std::vector<Ball*> balls = std::vector<Ball*>(totalBalls); 
-    for (int i = 0; i < totalObjects; i += 4) {
+    for (int i = 0; i < totalObjects*4; i += 4) {
         box = std::vector<double>(4);
         for (int j = 0; j < 4; j++) {
             box[j] = boxes[i + j];
@@ -89,6 +89,24 @@ std::vector<VisionSubsystem::Ball*> VisionSubsystem::getBalls()
             balls[index] = new Ball(box);
             index++;
         }
+    }
+    // std::cout << "End of getBalls" << std::endl;
+    return balls;
+}
+
+// return 3 fake balls
+std::vector<VisionSubsystem::Ball*> VisionSubsystem::getFakeBalls()
+{
+    int index = 0;
+    int fakeBallCount = 3;
+    std::vector<Ball*> balls = std::vector<Ball*>(fakeBallCount); 
+    for (int i = 0; i < fakeBallCount*4; i += 4) {
+        box = std::vector<double>(4);
+        for (int j = 0; j < 4; j++) {
+            box[j] = index*2 + j*2;
+        }
+        balls[index] = new Ball(box);
+        index++;
     }
     // std::cout << "End of getBalls" << std::endl;
     return balls;
@@ -161,25 +179,42 @@ void VisionSubsystem::updateClosestBall() {
     }
 }
 
-std::string VisionSubsystem::sortedBallAngles() {
-    std::string result = "unknown";
-    try {
+std::string VisionSubsystem::sortBallAngles() {
+    
+    allBallsSorted = "unknown";
+    // try {
         std::vector<VisionSubsystem::Ball*> balls = getBalls();
-        std::sort(balls.begin(), balls.end());  // uses custom operator < for comparison
-        std::stringstream ss;
-        for(std::vector<VisionSubsystem::Ball*>::iterator it = balls.begin(); 
-        it != balls.end(); ++it) { 
-            ss << (*it)->distance << " "; 
+        if (balls.size() > 0) {
+            std::sort(balls.begin(), balls.end());  // uses custom operator < for comparison
+            std::stringstream ss;
+            for(std::vector<VisionSubsystem::Ball*>::iterator it = balls.begin(); 
+            it != balls.end(); ++it) { 
+                ss << (*it)->distance << " "; 
+            }
+            allBallsSorted = ss.str();
         }
-        result = ss.str();
         disposeBalls(balls);
-    } catch (std::exception& ex ) {
-			std::string err_string = "Error sorting balls";
-			err_string += ex.what();
-			//DriverStation::ReportError(err_string.c_str());
-            std::cout <<err_string << std::endl;
-	}
-    return result;
+    // } catch (std::exception& ex ) {
+	// 		std::string err_string = "Error sorting balls";
+	// 		err_string += ex.what();
+	// 		//DriverStation::ReportError(err_string.c_str());
+    //         std::cout <<err_string << std::endl;
+	// }
+    return allBallsSorted;
+}
+
+std::string VisionSubsystem::sortFakeBallAngles() {
+    std::vector<VisionSubsystem::Ball*> balls = getFakeBalls();
+    std::sort(balls.begin(), balls.end());  // uses custom operator < for comparison
+    std::stringstream ss;
+    for(std::vector<VisionSubsystem::Ball*>::iterator it = balls.begin(); 
+    it != balls.end(); ++it) { 
+        ss << (*it)->distance << " "; 
+    }
+    allBallsSorted = ss.str();
+
+    disposeBalls(balls);
+    return allBallsSorted;
 }
 
 // call this after turn to next ball is complete
