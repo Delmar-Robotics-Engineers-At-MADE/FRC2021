@@ -58,10 +58,11 @@ using namespace frc;
 	// const static double kInitialShooterSlope = 250; // was 300 in 2020
 	// const static double kInitialShooterIntercept = 13000; // was 12696.1 in 2020
 	// from Wolfram: 4.03411 x^3 - 171.395 x^2 + 2526.17 x + 499.393
-	const static double kInitialShooterC1 = 4.03411; // cubic coefficients
-	const static double kInitialShooterC2 = -171.395; // cubic coefficients
-	const static double kInitialShooterC3 = 2526.17; // cubic coefficients
-	const static double kInitialShooterC4 = 499.393; // cubic coefficients
+	// new: 0.829278 x^3 - 37.7529 x^2 + 553.419 x + 14534.8
+	const static double kInitialShooterC1 = 0.829278; // cubic coefficients
+	const static double kInitialShooterC2 = -37.7529; // cubic coefficients
+	const static double kInitialShooterC3 = 553.419; // cubic coefficients
+	const static double kInitialShooterC4 = 14534.8; // cubic coefficients
 
 	const static double kMinColorConfidence = 0.85;
 	const static double kControlPanelSpeed = 0.8;
@@ -114,7 +115,7 @@ using namespace frc;
 	const static double kPturret = 0.01;
 	const static double kIturret = 0.003;
 	const static double kDturret = 0.0;
-	const static double kPtunedShooter = 0.005;
+	const static double kPtunedShooter = 0.009;
 	const static double kItunedShooter = 0.00005;
 	const static double kDtunedShooter = 0.0;
 	const static double kFtunedShooter = 0.045;
