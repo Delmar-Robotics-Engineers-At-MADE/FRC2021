@@ -1,6 +1,9 @@
-// Copyright (c) FIRST and other WPILib contributors.
-// Open Source Software; you can modify and/or share it under the terms of
-// the WPILib BSD license file in the root directory of this project.
+/*----------------------------------------------------------------------------*/
+/* Copyright (c) 2017-2020 FIRST. All Rights Reserved.                        */
+/* Open Source Software - may be modified and shared by FRC teams. The code   */
+/* must be accompanied by the FIRST BSD license file in the root directory of */
+/* the project.                                                               */
+/*----------------------------------------------------------------------------*/
 
 #include "subsystems/Wrist.h"
 
@@ -23,14 +26,8 @@ void Wrist::Log() {
   frc::SmartDashboard::PutNumber("Wrist Angle", GetMeasurement());
 }
 
-double Wrist::GetMeasurement() {
-  return m_pot.Get();
-}
+double Wrist::GetMeasurement() { return m_pot.Get(); }
 
-void Wrist::UseOutput(double output, double setpoint) {
-  m_motor.Set(output);
-}
+void Wrist::UseOutput(double output, double setpoint) { m_motor.Set(output); }
 
-void Wrist::Periodic() {
-  Log();
-}
+void Wrist::Periodic() { Log(); }

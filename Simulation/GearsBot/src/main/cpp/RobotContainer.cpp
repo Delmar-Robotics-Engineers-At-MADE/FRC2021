@@ -1,6 +1,9 @@
-// Copyright (c) FIRST and other WPILib contributors.
-// Open Source Software; you can modify and/or share it under the terms of
-// the WPILib BSD license file in the root directory of this project.
+/*----------------------------------------------------------------------------*/
+/* Copyright (c) 2019-2020 FIRST. All Rights Reserved.                        */
+/* Open Source Software - may be modified and shared by FRC teams. The code   */
+/* must be accompanied by the FIRST BSD license file in the root directory of */
+/* the project.                                                               */
+/*----------------------------------------------------------------------------*/
 
 #include "RobotContainer.h"
 
@@ -22,9 +25,14 @@ RobotContainer::RobotContainer()
   frc::SmartDashboard::PutData(&m_wrist);
   frc::SmartDashboard::PutData(&m_claw);
 
-  m_drivetrain.SetDefaultCommand(TankDrive(
-      [this] { return m_joy.GetY(frc::GenericHID::JoystickHand::kLeftHand); },
-      [this] { return m_joy.GetY(frc::GenericHID::JoystickHand::kRightHand); },
+  // m_drivetrain.SetDefaultCommand(TankDrive(
+  //     [this] { return m_joy.GetY(frc::GenericHID::JoystickHand::kLeftHand); },
+  //     [this] { return m_joy.GetY(frc::GenericHID::JoystickHand::kRightHand); },
+  //     &m_drivetrain));
+
+  m_drivetrain.SetDefaultCommand(TankDrive(  // for our simple Logitech controller in D mode
+      [this] { return m_joy.GetRawAxis(1); },
+      [this] { return m_joy.GetRawAxis(3); },
       &m_drivetrain));
 
   // Configure the button bindings
