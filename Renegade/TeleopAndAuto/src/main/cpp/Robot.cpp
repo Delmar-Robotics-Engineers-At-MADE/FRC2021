@@ -128,6 +128,12 @@ using namespace frc;
 	// for Galactic Search
 	std::string kSearchAnglesStrARed = "19.0 -56.5";
 	std::string kSearchPositionsStrARed = "-24056 -37076";
+	std::string kSearchAnglesStrABlue = "25.5 -62.0 20.5";
+	std::string kSearchPositionsStrABlue = "-31621 -44390 -58237";
+	std::string kSearchAnglesStrBRed = "-59.0 33 -37.5";
+	std::string kSearchPositionsStrBRed = "-11420 -13269 -29660 -41168";
+	std::string kSearchAnglesStrBBlue = "-3.5 -54.0 15.0";
+	std::string kSearchPositionsStrBBlue = "-10932 -28776 -40636 -57063";
 
 
 /********************************************** main class  ********************************************/
@@ -229,13 +235,15 @@ class Robot: public TimedRobot {
 	// state machine for galactic search
 	enum SearchStates {
 		kSearchStart = 0, 
-		kSearchBallCollected1,
+		// kSearchBallCollected1,
+		kSearchTurningToBall1,
+		kSearchDrivingToBall1,
 		kSearchTurningToBall2,
 		kSearchDrivingToBall2,
-		kSearchBallCollected2,
+		// kSearchBallCollected2,
 		kSearchTurningToBall3,
 		kSearchDrivingToBall3,
-		kSearchBallCollected3,
+		// kSearchBallCollected3,
 		kSearchComplete
 	};
 	SearchStates m_search_state = kSearchStart;
@@ -263,10 +271,10 @@ class Robot: public TimedRobot {
 	const std::string kAutoNameMoveOnly = "Move Only";
 	const std::string kAutoNameJustInit = "Just Initialize";
 	const std::string kAutoNameShootAndMove = "Shoot/Move";
-	const std::string kAutoNameSearchARed = "Search A Red";
-	const std::string kAutoNameSearchBRed = "Search B Red";
-	const std::string kAutoNameSearchABlue = "Search A Blue";
-	const std::string kAutoNameSearchBBlue = "Search B Blue";
+	const std::string kAutoNameSearch = "Galactic Search";
+	// const std::string kAutoNameSearchBRed = "Search B Red";
+	// const std::string kAutoNameSearchABlue = "Search A Blue";
+	// const std::string kAutoNameSearchBBlue = "Search B Blue";
 	const std::string kAutoOptionForward = "Forward";
 	const std::string kAutoOptionBackward = "Backard";
 	const std::string kAutoOptionNoMove = "No Move";
@@ -476,6 +484,10 @@ public:
 		frc::SmartDashboard::PutNumber("shoot C3", kInitialShooterC3);
 		frc::SmartDashboard::PutNumber("shoot C4", kInitialShooterC4);
 
+		// for Galactic Search
+		frc::SmartDashboard::PutString("S Angles", kSearchAnglesStrARed);
+		frc::SmartDashboard::PutString("S Positions", kSearchPositionsStrARed);
+
 		// control panel colors
 		m_colorMatcher.AddColorMatch(kBlueTarget);
 		m_colorMatcher.AddColorMatch(kGreenTarget);
@@ -491,10 +503,10 @@ public:
 		m_chooser.AddOption(kAutoNameMoveOnly, kAutoNameMoveOnly);
 		m_chooser.AddOption(kAutoNameJustInit, kAutoNameJustInit);
 		m_chooser.AddOption(kAutoNameTestWheels, kAutoNameTestWheels);
-		m_chooser.AddOption(kAutoNameSearchARed, kAutoNameSearchARed);
-		m_chooser.AddOption(kAutoNameSearchBRed, kAutoNameSearchBRed);
-		m_chooser.AddOption(kAutoNameSearchABlue, kAutoNameSearchABlue);
-		m_chooser.AddOption(kAutoNameSearchBBlue, kAutoNameSearchBBlue);
+		m_chooser.AddOption(kAutoNameSearch, kAutoNameSearch);
+		// m_chooser.AddOption(kAutoNameSearchBRed, kAutoNameSearchBRed);
+		// m_chooser.AddOption(kAutoNameSearchABlue, kAutoNameSearchABlue);
+		// m_chooser.AddOption(kAutoNameSearchBBlue, kAutoNameSearchBBlue);
 		m_chooser_options_dir.SetDefaultOption(kAutoOptionForward,kAutoOptionForward);
 		m_chooser_options_dir.AddOption(kAutoOptionBackward, kAutoOptionBackward);
 		m_chooser_options_dir.AddOption(kAutoOptionNoMove, kAutoOptionNoMove);
@@ -607,10 +619,8 @@ public:
 		std::cout << "Auto selected: " << m_autoSelected << std::endl;
 
 		// for Galactic Search
-		if (m_autoSelected == kAutoNameSearchARed) {
-			frc::SmartDashboard::PutString("S Angles", kSearchAnglesStrARed);
-			frc::SmartDashboard::PutString("S Positions", kSearchPositionsStrARed);
-		}
+		frc::SmartDashboard::PutString("S Ball angles", m_visionSubsystem->sortBallAngles());
+		// at this point we should determine path heuristically, not read dashboard
 		std::string searchAngles = frc::SmartDashboard::GetString("S Angles", kSearchAnglesStrARed);
 		std::string searchPositions = frc::SmartDashboard::GetString("S Positions", kSearchPositionsStrARed);
 		m_search_angles = UnpackNumbers (searchAngles);
@@ -623,7 +633,6 @@ public:
 		for(std::vector<double>::iterator it = m_search_positions.begin(); 
 		  it != m_search_positions.end(); ++it) { std::cout << *it << " "; }
 		std::cout << std::endl;
-		frc::SmartDashboard::PutString("S Ball angles", m_visionSubsystem->sortBallAngles());
 
 		// important stuff for auto
 		if (m_autoSelected == kAutoNameShootAndMove) {
@@ -1383,7 +1392,8 @@ public:
 	}
 
 	void AutonomousPeriodic() {
-		if (m_autoSelected == kAutoNameSearchARed) {
+
+		if (m_autoSelected == kAutoNameSearch) {
 			if (m_timer2.Get() < 3.0) {
 				AutoMoveOffLine(true, true);
 			} else { // done dropping intake; start searching
@@ -1393,32 +1403,47 @@ public:
 					bool doneDriving = false; bool doneRotating = false;
 					switch (m_search_state) {
 						case kSearchStart:
-							m_search_state = kSearchBallCollected1;
+							m_search_state = kSearchTurningToBall1;
 							break;
-						case kSearchBallCollected1:
-							m_search_state = kSearchTurningToBall2;
+						// case kSearchBallCollected1:
+						// 	m_search_state = kSearchTurningToBall2;
+						// 	break;
+						case kSearchTurningToBall1:
+							//std::cout << "state= turning to: 1" << std::endl;
+							doneRotating = RotateToAngle(m_search_angles[0]);
+							if (doneRotating) {m_search_state = kSearchDrivingToBall1;}
+							break;
+						case kSearchDrivingToBall1:
+							//std::cout << "state= driving to: 1" << std::endl;
+							doneDriving = DriveToPosition(m_search_positions[0]);
+							if (doneDriving) {m_search_state = kSearchTurningToBall2;}
 							break;
 						case kSearchTurningToBall2:
 							//std::cout << "state= turning to: 2" << std::endl;
-							doneRotating = RotateToAngle(m_search_angles[0]);
+							doneRotating = RotateToAngle(m_search_angles[1]);
 							if (doneRotating) {m_search_state = kSearchDrivingToBall2;}
 							break;
 						case kSearchDrivingToBall2:
 							//std::cout << "state= driving to: 2" << std::endl;
-							doneDriving = DriveToPosition(m_search_positions[0]);
-							if (doneDriving) {m_search_state = kSearchTurningToBall3;}
+							doneDriving = DriveToPosition(m_search_positions[1]);
+							if (doneDriving) {
+								if (m_search_angles.size() == 2) { // A Red has only 2 turns
+									m_search_state = kSearchComplete;
+								} else {m_search_state = kSearchTurningToBall3;}
+							}
 							break;
 						case kSearchTurningToBall3:
 							//std::cout << "state= turning to: 3" << std::endl;
-							doneRotating = RotateToAngle(m_search_angles[1]);
+							doneRotating = RotateToAngle(m_search_angles[2]);
 							if (doneRotating) {m_search_state = kSearchDrivingToBall3;}
 							break;
 						case kSearchDrivingToBall3:
 							//std::cout << "state= driving to: 3" << std::endl;
-							doneDriving = DriveToPosition(m_search_positions[1]);
+							doneDriving = DriveToPosition(m_search_positions[2]);
 							if (doneDriving) {m_search_state = kSearchComplete;}
 							break;
 						case kSearchComplete:
+							// might need to keep collector running for a second
 						default: // done
 							m_robotDrive.TankDrive(0, 0);
 							break;
