@@ -196,6 +196,8 @@ class Robot: public TimedRobot {
 	frc::DigitalInput eye_intake{0}; // photo eye at collector
 	frc::DigitalInput eye_turret{1}; // photo eye at turret
 	frc::DigitalInput hall_effect{2}; // hall effect sensor on turret
+	frc::DigitalInput hall_effect_port{8}; // hall effect sensor on turret
+	frc::DigitalInput hall_effect_star{9}; // hall effect sensor on turret
 	static constexpr auto i2cPort = frc::I2C::Port::kOnboard;
 	rev::ColorSensorV3 m_colorSensor{i2cPort};
 	rev::ColorMatch m_colorMatcher;
@@ -686,6 +688,7 @@ public:
 	void MoveTurretToStartingPosition() {
 
 		bool turret_on_hall = false;
+		bool turret_on_port_or_star_hall = false;
 		frc::SmartDashboard::PutString("turr state", "initial move");
 
 		// code from WPI to set starting position
@@ -704,7 +707,13 @@ public:
 
 		m_timer.Reset(); m_timer.Start(); while (m_timer.Get() < 5) {
 			turret_on_hall = !hall_effect.Get();
-			if (turret_on_hall) { 
+			turret_on_port_or_star_hall = !hall_effect_port.Get() || !hall_effect_star.Get();
+			if (turret_on_port_or_star_hall) {
+				m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
+				frc::SmartDashboard::PutString("turr state", "found wrong hall");
+				throw "found port or starboard hall sensor"; // should terminate program
+				break; // exit loop
+			} else if (turret_on_hall) { 
 				m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
 				frc::SmartDashboard::PutString("turr state", "found hall 1");
 				break; // exit loop
@@ -712,7 +721,7 @@ public:
 			Wait(0.1);
 		} // while
 		m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
-		frc::SmartDashboard::PutString("turr state", "while done");
+		frc::SmartDashboard::PutString("turr state", "hall or time");
 
 		turret_on_hall = !hall_effect.Get();
 		if (!turret_on_hall) {
@@ -1161,6 +1170,13 @@ public:
 		/******************* move stuff **********************/
 
 		//m_turret->Set(ControlMode::PercentOutput, shooter_Y);  // temporary test
+
+		// just in case turret has a mind of its own, try to stop it... shouldn't happen
+		double turret_pos = m_turret->GetSelectedSensorPosition(0);
+		if (turret_pos < kTurretLimitStarboard || turret_pos > kTurretLimitPort) {
+			frc::SmartDashboard::PutString("turr state", "out of range");
+			m_turret->Set(ControlMode::PercentOutput, 0);
+		}
 		
 		// reset gyro angle
 		if ( reset_yaw_button_pressed ) {
