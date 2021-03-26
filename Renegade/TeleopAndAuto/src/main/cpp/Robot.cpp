@@ -126,7 +126,7 @@ using namespace frc;
 	const static double kTargetDiscontinuityZone = 15; // degrees either side of 0
 
 	// for Galactic Search
-	std::string kSearchAnglesStrARed = "19.0 -56.5";
+	std::string kSearchAnglesStrARed = "19.0 -65";
 	std::string kSearchPositionsStrARed = "-24056 -37076";
 	std::string kSearchAnglesStrABlue = "25.5 -62.0 20.5";
 	std::string kSearchPositionsStrABlue = "-31621 -44390 -58237";
@@ -621,7 +621,12 @@ public:
 		std::cout << "Auto selected: " << m_autoSelected << std::endl;
 
 		// for Galactic Search
-		frc::SmartDashboard::PutString("S Ball angles", m_visionSubsystem->sortBallAngles());
+		try { frc::SmartDashboard::PutString("S Ball angles", m_visionSubsystem->sortBallAngles());
+		} catch (std::exception& ex ) {
+			std::string err_string = "Error observing balls: ";
+			err_string += ex.what();
+			DriverStation::ReportError(err_string.c_str());
+		}
 		// at this point we should determine path heuristically, not read dashboard
 		std::string searchAngles = frc::SmartDashboard::GetString("S Angles", kSearchAnglesStrARed);
 		std::string searchPositions = frc::SmartDashboard::GetString("S Positions", kSearchPositionsStrARed);
@@ -1425,22 +1430,22 @@ public:
 						// 	m_search_state = kSearchTurningToBall2;
 						// 	break;
 						case kSearchTurningToBall1:
-							//std::cout << "state= turning to: 1" << std::endl;
+							std::cout << "state= turning to: 1: " << m_search_angles[0] << std::endl;
 							doneRotating = RotateToAngle(m_search_angles[0]);
 							if (doneRotating) {m_search_state = kSearchDrivingToBall1;}
 							break;
 						case kSearchDrivingToBall1:
-							//std::cout << "state= driving to: 1" << std::endl;
+							std::cout << "state= driving to: 1" << std::endl;
 							doneDriving = DriveToPosition(m_search_positions[0]);
 							if (doneDriving) {m_search_state = kSearchTurningToBall2;}
 							break;
 						case kSearchTurningToBall2:
-							//std::cout << "state= turning to: 2" << std::endl;
+							std::cout << "state= turning to: 2" << std::endl;
 							doneRotating = RotateToAngle(m_search_angles[1]);
 							if (doneRotating) {m_search_state = kSearchDrivingToBall2;}
 							break;
 						case kSearchDrivingToBall2:
-							//std::cout << "state= driving to: 2" << std::endl;
+							std::cout << "state= driving to: 2" << std::endl;
 							doneDriving = DriveToPosition(m_search_positions[1]);
 							if (doneDriving) {
 								if (m_search_angles.size() == 2) { // A Red has only 2 turns
@@ -1449,18 +1454,22 @@ public:
 							}
 							break;
 						case kSearchTurningToBall3:
-							//std::cout << "state= turning to: 3" << std::endl;
+							std::cout << "state= turning to: 3" << std::endl;
 							doneRotating = RotateToAngle(m_search_angles[2]);
 							if (doneRotating) {m_search_state = kSearchDrivingToBall3;}
 							break;
 						case kSearchDrivingToBall3:
-							//std::cout << "state= driving to: 3" << std::endl;
+							std::cout << "state= driving to: 3" << std::endl;
 							doneDriving = DriveToPosition(m_search_positions[2]);
 							if (doneDriving) {m_search_state = kSearchComplete;}
 							break;
 						case kSearchComplete:
 							// might need to keep collector running for a second
+							std::cout << "state= done" << std::endl;
+							m_robotDrive.TankDrive(0, 0);
+							break;
 						default: // done
+							std::cout << "state= something wrong" << std::endl;
 							m_robotDrive.TankDrive(0, 0);
 							break;
 					}
