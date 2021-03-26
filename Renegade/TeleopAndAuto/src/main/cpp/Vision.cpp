@@ -77,7 +77,9 @@ std::vector<VisionSubsystem::Ball*> VisionSubsystem::getBalls()
 {
     // was... return balls;
     // Generate array of Ball objects... moved here from periodic
-    // std::cout << "Start of getBalls" << std::endl;
+    std::cout << "Start of getBalls" << std::endl;
+    std::cout << "totalBalls= " << totalBalls << std::endl;
+    std::cout << "totalObjects= " << totalObjects << std::endl;
     int index = 0;
     std::vector<Ball*> balls = std::vector<Ball*>(totalBalls); 
     for (int i = 0; i < totalObjects*4; i += 4) {
