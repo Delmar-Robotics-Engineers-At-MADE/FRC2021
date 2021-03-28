@@ -77,33 +77,34 @@ std::vector<VisionSubsystem::Ball*> VisionSubsystem::getBalls()
 {
     // was... return balls;
     // Generate array of Ball objects... moved here from periodic
-    std::cout << "Start of getBalls" << std::endl;
-    std::cout << "totalBalls= " << totalBalls << std::endl;
-    std::cout << "totalObjects= " << totalObjects << std::endl;
-    std::cout << "boxes size= " << boxes.size() << std::endl;
+    // std::cout << "Start of getBalls" << std::endl;
+    // std::cout << "totalBalls= " << totalBalls << std::endl;
+    // std::cout << "totalObjects= " << totalObjects << std::endl;
+    // std::cout << "boxes size= " << boxes.size() << std::endl;
     int index = 0;
     std::vector<Ball*> balls = std::vector<Ball*>(totalBalls); 
     for (int cornerIndex = 0, objIndex=0; objIndex < totalObjects; cornerIndex += 4, objIndex++) {
-        std::cout << "getBalls obj index= " << objIndex << std::endl;
-        std::cout << "getBalls corner index= " << cornerIndex << std::endl;
-        std::cout << "getBalls class[i]= " << classes[objIndex] << std::endl;
+        // std::cout << "getBalls obj index= " << objIndex << std::endl;
+        // std::cout << "getBalls corner index= " << cornerIndex << std::endl;
+        // std::cout << "getBalls class[i]= " << classes[objIndex] << std::endl;
         if (classes[objIndex] == "Power_Cell") {
             std::vector<double> corners = std::vector<double>(4);
             for (int j = 0; j < 4; j++) {
-                std::cout << "setting corner " << j << " to " << boxes[j + cornerIndex] << std::endl;
+                //std::cout << "setting corner " << j << " to " << boxes[j + cornerIndex] << std::endl;
                 corners[j] = boxes[j + cornerIndex];
-                std::cout << "confirming corner " << j << " is " << corners[j] << std::endl;
+                //std::cout << "confirming corner " << j << " is " << corners[j] << std::endl;
             }
-            std::cout << "getBalls setting result, index=" << index << std::endl;
+            //std::cout << "getBalls setting result, index=" << index << std::endl;
             balls[index] = new Ball(corners);
             index++;
         }
     }
-    std::cout << "End of getBalls, returning " << balls.size() << std::endl;
+    // std::cout << "End of getBalls, returning " << balls.size() << std::endl;
     return balls;
 }
 
 // return 3 fake balls
+// Note: getBalls above was rewritting to remove bug around referencing class names
 std::vector<VisionSubsystem::Ball*> VisionSubsystem::getFakeBalls()
 {
     int index = 0;
@@ -121,13 +122,17 @@ std::vector<VisionSubsystem::Ball*> VisionSubsystem::getFakeBalls()
     return balls;
 }
 
-void VisionSubsystem::disposeBalls(std::vector<VisionSubsystem::Ball*> balls)
+void VisionSubsystem::disposeBalls(std::vector<VisionSubsystem::Ball*> &balls)
 {
     // std::cout << "disposing " << balls.size() << " balls" << std::endl;
     for (uint i = 0; i < balls.size(); i += 4) {
         if (balls[i] != NULL) {
             delete(balls[i]);
         }
+    }
+    while (!balls.empty()) {
+        balls.pop_back();
+        // std::cout << "in dispose, size= " << balls.size() << std::endl;
     }
 }
 
@@ -194,24 +199,32 @@ std::string VisionSubsystem::sortBallAngles() {
     allBallsSorted = "unknown";
     // try {
         std::vector<VisionSubsystem::Ball*> balls;
-        while (balls.size() < 3) {
+        // afraid of a memory leak somewhere, so don't do this forever
+        for (int i = 0; i < kMaxTriesToSeeThreeBalls; i++) {
             balls = getBalls();
-            std::cout << "sorting balls, got " << balls.size() << std::endl;
+            if (balls.size() == 3) {
+                std::cout << "found 3 balls" << std::endl;
+                break;  // exit for loop
+            }
+            disposeBalls(balls);
+            std::cout << "size after dispose: " << balls.size() << std::endl;
         }
         std::cout << "sorting balls= " << balls.size() << std::endl;
         if (balls.size() > 0) {
             std::sort(balls.begin(), balls.end());  // uses custom operator < for comparison
-            std::cout << "balls have been sorted" << std::endl;
+            std::cout << "balls have been sorted, size=" << balls.size() << std::endl;
             std::stringstream ss;
             for(std::vector<VisionSubsystem::Ball*>::iterator it = balls.begin(); 
-            it != balls.end(); ++it) { 
-                std::cout << "appending ball to string: " << (*it)->getAngle() << std::endl;
+              it != balls.end(); ++it) { 
+                std::cout << "appending ball to string" << std::endl;
+                // std::cout << "appending ball to string: " << (*it)->getAngle() << std::endl;
                 ss << (*it)->getAngle() << " "; 
             }
             allBallsSorted = ss.str();
+            std::cout << "sort disposing balls" << std::endl;
+            disposeBalls(balls);
         }
-        std::cout << "sort disposing balls" << std::endl;
-        disposeBalls(balls);
+
     // } catch (std::exception& ex ) {
 	// 		std::string err_string = "Error sorting balls";
 	// 		err_string += ex.what();

@@ -13,6 +13,7 @@ private:
     frc::Timer m_timer;
     double timeBallsLastSeen = 0.0;
     std::string allBallsSorted = "none";
+    const static int kMaxTriesToSeeThreeBalls = 500;
 public:
     double distanceClosestBall = 0.0;
     double angleClosestBall = 0.0;
@@ -56,7 +57,7 @@ public:
     virtual int getTotalBalls();
     virtual std::vector<Ball*> getBalls();
     virtual std::vector<Ball*> getFakeBalls();
-    virtual void disposeBalls(std::vector<Ball*> balls);
+    virtual void disposeBalls(std::vector<Ball*> &balls);
     virtual void updateClosestBall();
     virtual void clearSecondClosestBall();
     virtual std::string sortBallAngles();
