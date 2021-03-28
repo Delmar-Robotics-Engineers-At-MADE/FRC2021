@@ -621,6 +621,7 @@ public:
 		std::cout << "Auto selected: " << m_autoSelected << std::endl;
 
 		// for Galactic Search
+		m_search_state = kSearchStart;
 		try { frc::SmartDashboard::PutString("S Ball angles", m_visionSubsystem->sortBallAngles());
 		} catch (std::exception& ex ) {
 			std::string err_string = "Error observing balls: ";
@@ -1435,17 +1436,17 @@ public:
 							if (doneRotating) {m_search_state = kSearchDrivingToBall1;}
 							break;
 						case kSearchDrivingToBall1:
-							std::cout << "state= driving to: 1" << std::endl;
+							std::cout << "state= driving to: 1" << m_search_positions[0] << std::endl;
 							doneDriving = DriveToPosition(m_search_positions[0]);
 							if (doneDriving) {m_search_state = kSearchTurningToBall2;}
 							break;
 						case kSearchTurningToBall2:
-							std::cout << "state= turning to: 2" << std::endl;
+							std::cout << "state= turning to: 2" << m_search_angles[1] <<std::endl;
 							doneRotating = RotateToAngle(m_search_angles[1]);
 							if (doneRotating) {m_search_state = kSearchDrivingToBall2;}
 							break;
 						case kSearchDrivingToBall2:
-							std::cout << "state= driving to: 2" << std::endl;
+							std::cout << "state= driving to: 2" << m_search_positions[1] << std::endl;
 							doneDriving = DriveToPosition(m_search_positions[1]);
 							if (doneDriving) {
 								if (m_search_angles.size() == 2) { // A Red has only 2 turns
@@ -1454,12 +1455,12 @@ public:
 							}
 							break;
 						case kSearchTurningToBall3:
-							std::cout << "state= turning to: 3" << std::endl;
+							std::cout << "state= turning to: 3" << m_search_angles[2] << std::endl;
 							doneRotating = RotateToAngle(m_search_angles[2]);
 							if (doneRotating) {m_search_state = kSearchDrivingToBall3;}
 							break;
 						case kSearchDrivingToBall3:
-							std::cout << "state= driving to: 3" << std::endl;
+							std::cout << "state= driving to: 3" << m_search_positions[2] << std::endl;
 							doneDriving = DriveToPosition(m_search_positions[2]);
 							if (doneDriving) {m_search_state = kSearchComplete;}
 							break;
