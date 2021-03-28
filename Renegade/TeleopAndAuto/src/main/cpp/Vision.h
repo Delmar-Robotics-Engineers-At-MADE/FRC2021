@@ -40,7 +40,7 @@ public:
     int totalObjects = 0, totalBalls = 0;
     // std::vector<Ball*> balls = std::vector<Ball*>(0);  // this is an unnecessary memory management complexity
     std::vector<std::string> classes;
-    std::vector<double> boxes, box;
+    std::vector<double> boxes /*, box*/;
     nt::NetworkTableEntry totalObjectsEntry, classesEntry, boxesEntry; // were pointers
 
     virtual ~VisionSubsystem(); // destructor

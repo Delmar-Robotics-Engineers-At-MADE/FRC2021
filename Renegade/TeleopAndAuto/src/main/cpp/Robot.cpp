@@ -622,10 +622,19 @@ public:
 
 		// for Galactic Search
 		m_search_state = kSearchStart;
+		frc::SmartDashboard::PutString("S Ball angles", "looking for 3...");
+		// none of these catches will catch a memory access error it seems
 		try { frc::SmartDashboard::PutString("S Ball angles", m_visionSubsystem->sortBallAngles());
 		} catch (std::exception& ex ) {
 			std::string err_string = "Error observing balls: ";
 			err_string += ex.what();
+			DriverStation::ReportError(err_string.c_str());
+		}catch (std::string& ex ) {
+			std::string err_string = "(str) Error observing balls: ";
+			err_string += ex;
+			DriverStation::ReportError(err_string.c_str());
+		}catch (...) {
+			std::string err_string = "(bad) Error observing balls: ";
 			DriverStation::ReportError(err_string.c_str());
 		}
 		// at this point we should determine path heuristically, not read dashboard
