@@ -47,7 +47,7 @@ using namespace frc;
 	const static double kConveyerSpeed = 0.95;
 	//const static double kFirstConveyerSpeed = 0.95;
 	const static double kIntakeSpeed = 0.7;
-	const static double kIntakeDelayArrival = 0.4; // in 2020 was 1;
+	const static double kIntakeDelayArrival = 0.3; // in 2020 was 1;
 	const static double kIntakeDelayGap = 0.0; // in 2020 was 0.05;
 
 	const static double kIdleShooterPower = 0.25; 
@@ -130,10 +130,10 @@ using namespace frc;
 	std::string kSearchPositionsStrARed = "-24056 -37076";
 	std::string kSearchAnglesStrABlue = "25.5 -62.0 20.5";
 	std::string kSearchPositionsStrABlue = "-31621 -44390 -58237";
-	std::string kSearchAnglesStrBRed = "-59.0 33 -37.5";
-	std::string kSearchPositionsStrBRed = "-11420 -13269 -29660 -41168";
-	std::string kSearchAnglesStrBBlue = "-3.5 -54.0 15.0";
-	std::string kSearchPositionsStrBBlue = "-10932 -28776 -40636 -57063";
+	std::string kSearchAnglesStrBRed = "-59.0 43 -45";
+	std::string kSearchPositionsStrBRed = "-13269 -29660 -41168";
+	std::string kSearchAnglesStrBBlue = "35 -54.0 15.0";
+	std::string kSearchPositionsStrBBlue = "-28776 -40636 -57063";
 
 
 /********************************************** main class  ********************************************/

@@ -207,7 +207,7 @@ std::string VisionSubsystem::sortBallAngles() {
                 break;  // exit for loop
             }
             disposeBalls(balls);
-            std::cout << "size after dispose: " << balls.size() << std::endl;
+            //std::cout << "size after dispose: " << balls.size() << std::endl;
         }
         std::cout << "sorting balls= " << balls.size() << std::endl;
         if (balls.size() > 0) {
