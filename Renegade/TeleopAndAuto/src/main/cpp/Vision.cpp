@@ -5,9 +5,27 @@
 #include <iostream> // for std::cout
 #include <sstream> // for stringstream
 #include <frc/DriverStation.h>
+#include <algorithm> // for vector sorting
 
 const static double kBallTrackSmoothingTime = 2.0;
 const static double kBallAngleTolerance = 0.8; // ignore up to this % fluctuation
+
+
+double ConvertRadsToDegrees (double rads) {
+    const static double conversion_factor = 180.0/3.141592653589793238463;
+    return rads * conversion_factor;
+}
+
+double ConvertDegreesToRads (double degs) {
+    const static double conversion_factor = 3.141592653589793238463/180.0;
+    return degs * conversion_factor;
+}
+
+AutoPath::AutoPath(std::string name, std::string angles, std::string positions) {
+    m_searchAngles = angles;
+    m_searchPositions = positions;
+    m_searchPathName = name;
+}
 
 double VisionSubsystem::Gamepiece::getAngle()
 {
@@ -39,6 +57,11 @@ VisionSubsystem::VisionSubsystem()  // constructor
     boxesEntry = table->GetEntry("boxes");
     m_timer.Reset();
     m_timer.Start();
+
+    m_autoPaths[kARed] = new AutoPath("A Red", "19.0 -65", "-24056 -37076");
+	m_autoPaths[kABlue] = new AutoPath("A Blue", "25.5 -62.0 20.5", "-31621 -44390 -58237");
+	m_autoPaths[kBRed] = new AutoPath("B Red", "-59.0 43 -45", "-13269 -29660 -41168");
+	m_autoPaths[kBBlue] = new AutoPath("B Blue", "35 -54.0 15.0", "-28776 -40636 -57063");
 }
 
 VisionSubsystem::~VisionSubsystem() { // destructor
@@ -193,6 +216,11 @@ void VisionSubsystem::updateClosestBall() {
     }
 }
 
+bool VisionSubsystem::ballPtrComparator (VisionSubsystem::Ball *a, VisionSubsystem::Ball *b) {
+    std::cout << "compare: " << (a->distance < b->distance) << std::endl;
+    return (a->distance < b->distance);
+}
+
 std::string VisionSubsystem::sortBallAngles() {
     
     std::cout << "Beginning of sort ball angles" << std::endl;
@@ -211,14 +239,14 @@ std::string VisionSubsystem::sortBallAngles() {
         }
         std::cout << "sorting balls= " << balls.size() << std::endl;
         if (balls.size() > 0) {
-            std::sort(balls.begin(), balls.end());  // uses custom operator < for comparison
+            std::sort(balls.begin(), balls.end(), ballPtrComparator);  // because vector elements are Ball pointers, not Balls, cannot use < operator
             std::cout << "balls have been sorted, size=" << balls.size() << std::endl;
             std::stringstream ss;
             for(std::vector<VisionSubsystem::Ball*>::iterator it = balls.begin(); 
               it != balls.end(); ++it) { 
                 std::cout << "appending ball to string" << std::endl;
                 // std::cout << "appending ball to string: " << (*it)->getAngle() << std::endl;
-                ss << (*it)->getAngle() << " "; 
+                ss << ConvertRadsToDegrees((*it)->getAngle()) << " "; 
             }
             allBallsSorted = ss.str();
             std::cout << "sort disposing balls" << std::endl;
@@ -254,4 +282,58 @@ void VisionSubsystem::clearSecondClosestBall() {
     distanceSecondClosestBall = 0.0;
     angleSecondClosestBall = 0.0;
     turnToNextBallAngle = 0.0;
+}
+
+AutoPath * VisionSubsystem::selectAutoPath(){
+    std::cout << "Beginning of selectAutoPath" << std::endl;
+    std::vector<VisionSubsystem::Ball*> balls;
+    GalacticSearchPath determination = kBBlue; 
+    // afraid of a memory leak somewhere, so don't do this forever
+    for (int i = 0; i <= kMaxTriesToSeeThreeBalls; i++) {
+        balls = getBalls();
+        if (balls.size() == 3) {
+            std::cout << "found 3 balls" << std::endl;
+            break;  // exit for loop
+        }
+        if (i < kMaxTriesToSeeThreeBalls) {// don't dispose on last iteration of loop
+            disposeBalls(balls);
+            frc::Wait(0.1);
+        }
+    }
+    std::cout << "sorting balls= " << balls.size() << std::endl;
+    if (balls.size() == 2) {
+        // for B Blue, one ball is too far away to identify, so we usually just get 2 balls
+        determination = kBBlue;
+    } else if (balls.size() > 0) {
+        std::sort(balls.begin(), balls.end(), ballPtrComparator);  // because vector elements are Ball pointers, not Balls, cannot use < operator
+        std::cout << "balls have been sorted, size=" << balls.size() << std::endl;
+        std::stringstream ss;
+        for(std::vector<VisionSubsystem::Ball*>::iterator it = balls.begin(); 
+          it != balls.end(); ++it) { 
+            // std::cout << "appending ball to string" << std::endl;
+            // std::cout << "appending ball to string: " << (*it)->getAngle() << std::endl;
+            ss << (*it)->getAngle() << " "; 
+        }
+        allBallsSorted = ss.str();
+        std::cout << "sorted angles: " << allBallsSorted << std::endl;
+
+        Ball *closestBall = *(balls.begin());
+        if (abs(closestBall->getAngle()) < kGalacticSearchAngleTolerance) { // only A Red has close center ball
+            determination = kARed;
+        } else if (closestBall->getAngle() < 0) { // only B Red has closest ball to the left
+            determination = kBRed;
+        } else { // by process of elimination, must be A Blue
+            determination = kABlue;
+        }
+
+        std::cout << "sort disposing balls" << std::endl;
+        disposeBalls(balls);
+
+    }
+
+    return m_autoPaths[determination];
+}
+
+AutoPath * VisionSubsystem::defaultAutoPath(){
+    return m_autoPaths[kARed];
 }

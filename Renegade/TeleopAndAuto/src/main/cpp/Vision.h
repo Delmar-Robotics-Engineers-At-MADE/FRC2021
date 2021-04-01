@@ -8,12 +8,35 @@
 #include <networktables/NetworkTableEntry.h>
 #include <frc/Timer.h>
 
+const static double kGalacticSearchAngleTolerance = 4.0;
+
+enum GalacticSearchPath {
+		kARed = 0,
+		kABlue,
+		kBRed,
+        kBBlue
+	};
+
+extern double ConvertRadsToDegrees (double rads);
+extern double ConvertDegreesToRads (double degs);
+
+class AutoPath{
+public:
+    std::string m_searchAngles;
+    std::string m_searchPositions;
+    std::string m_searchPathName;
+    AutoPath(std::string name, std::string angles, std::string positions);
+};
+
 class VisionSubsystem {
 private:
     frc::Timer m_timer;
     double timeBallsLastSeen = 0.0;
     std::string allBallsSorted = "none";
-    const static int kMaxTriesToSeeThreeBalls = 500;
+    const static int kMaxTriesToSeeThreeBalls = 50;
+
+    AutoPath *m_autoPaths[sizeof(GalacticSearchPath)];
+
 public:
     double distanceClosestBall = 0.0;
     double angleClosestBall = 0.0;
@@ -36,6 +59,8 @@ public:
         virtual ~Ball(); // destructor
         virtual bool operator < (const Ball& b) const; // comparison for sorting
     };
+
+    static bool ballPtrComparator (Ball *a, Ball *b);
 
     std::shared_ptr<NetworkTable> table;
     int totalObjects = 0, totalBalls = 0;
@@ -62,4 +87,6 @@ public:
     virtual void clearSecondClosestBall();
     virtual std::string sortBallAngles();
     virtual std::string sortFakeBallAngles();
+    virtual AutoPath *selectAutoPath();
+    virtual AutoPath *defaultAutoPath();
 };

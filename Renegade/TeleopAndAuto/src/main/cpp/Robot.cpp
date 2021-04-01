@@ -125,16 +125,6 @@ using namespace frc;
 	const static double kHeadingDiscontinuityZone = 6; // degrees either side of 0
 	const static double kTargetDiscontinuityZone = 15; // degrees either side of 0
 
-	// for Galactic Search
-	std::string kSearchAnglesStrARed = "19.0 -65";
-	std::string kSearchPositionsStrARed = "-24056 -37076";
-	std::string kSearchAnglesStrABlue = "25.5 -62.0 20.5";
-	std::string kSearchPositionsStrABlue = "-31621 -44390 -58237";
-	std::string kSearchAnglesStrBRed = "-59.0 43 -45";
-	std::string kSearchPositionsStrBRed = "-13269 -29660 -41168";
-	std::string kSearchAnglesStrBBlue = "35 -54.0 15.0";
-	std::string kSearchPositionsStrBBlue = "-28776 -40636 -57063";
-
 
 /********************************************** main class  ********************************************/
 
@@ -273,7 +263,8 @@ class Robot: public TimedRobot {
 	const std::string kAutoNameMoveOnly = "Move Only";
 	const std::string kAutoNameJustInit = "Just Initialize";
 	const std::string kAutoNameShootAndMove = "Shoot/Move";
-	const std::string kAutoNameSearch = "Galactic Search";
+	const std::string kAutoNameSearchMan = "Galactic Search Manual";
+	const std::string kAutoNameSearchAuto = "Galactic Search Auto";
 	// const std::string kAutoNameSearchBRed = "Search B Red";
 	// const std::string kAutoNameSearchABlue = "Search A Blue";
 	// const std::string kAutoNameSearchBBlue = "Search B Blue";
@@ -307,16 +298,6 @@ class Robot: public TimedRobot {
 
 	double ScaleSpeed (double s, double scale) {
 		return s * scale;
-	}
-
-	double ConvertRadsToDegrees (double rads) {
-		const static double conversion_factor = 180.0/3.141592653589793238463;
-		return rads * conversion_factor;
-	}
-
-	double ConvertDegreesToRads (double degs) {
-		const static double conversion_factor = 3.141592653589793238463/180.0;
-		return degs * conversion_factor;
 	}
 
 public:
@@ -476,19 +457,19 @@ public:
 		m_visionSubsystem = new VisionSubsystem();
 
 		/* this is used to tune the PID numbers with shuffleboard */
-		frc::SmartDashboard::PutNumber("kP", kPtunedShooter);
-		frc::SmartDashboard::PutNumber("kI", kItunedShooter);
-		frc::SmartDashboard::PutNumber("kD", kDtunedShooter); 
-		frc::SmartDashboard::PutNumber("kF", kFtunedShooter); 
+		frc::SmartDashboard::PutNumber("T kP", kPtunedShooter);
+		frc::SmartDashboard::PutNumber("T kI", kItunedShooter);
+		frc::SmartDashboard::PutNumber("T kD", kDtunedShooter); 
+		frc::SmartDashboard::PutNumber("T kF", kFtunedShooter); 
 		
-		frc::SmartDashboard::PutNumber("shoot C1", kInitialShooterC1);
-		frc::SmartDashboard::PutNumber("shoot C2", kInitialShooterC2);
-		frc::SmartDashboard::PutNumber("shoot C3", kInitialShooterC3);
-		frc::SmartDashboard::PutNumber("shoot C4", kInitialShooterC4);
+		frc::SmartDashboard::PutNumber("T C1", kInitialShooterC1);
+		frc::SmartDashboard::PutNumber("T C2", kInitialShooterC2);
+		frc::SmartDashboard::PutNumber("T C3", kInitialShooterC3);
+		frc::SmartDashboard::PutNumber("T C4", kInitialShooterC4);
 
 		// for Galactic Search
-		frc::SmartDashboard::PutString("S Angles", kSearchAnglesStrARed);
-		frc::SmartDashboard::PutString("S Positions", kSearchPositionsStrARed);
+		frc::SmartDashboard::PutString("S Angles", m_visionSubsystem->defaultAutoPath()->m_searchAngles);
+		frc::SmartDashboard::PutString("S Positions", m_visionSubsystem->defaultAutoPath()->m_searchPositions);
 
 		// control panel colors
 		m_colorMatcher.AddColorMatch(kBlueTarget);
@@ -505,7 +486,8 @@ public:
 		m_chooser.AddOption(kAutoNameMoveOnly, kAutoNameMoveOnly);
 		m_chooser.AddOption(kAutoNameJustInit, kAutoNameJustInit);
 		m_chooser.AddOption(kAutoNameTestWheels, kAutoNameTestWheels);
-		m_chooser.AddOption(kAutoNameSearch, kAutoNameSearch);
+		m_chooser.AddOption(kAutoNameSearchMan, kAutoNameSearchMan);
+		m_chooser.AddOption(kAutoNameSearchAuto, kAutoNameSearchAuto);
 		// m_chooser.AddOption(kAutoNameSearchBRed, kAutoNameSearchBRed);
 		// m_chooser.AddOption(kAutoNameSearchABlue, kAutoNameSearchABlue);
 		// m_chooser.AddOption(kAutoNameSearchBBlue, kAutoNameSearchBBlue);
@@ -516,10 +498,10 @@ public:
 		m_chooser_options_speed.AddOption(kAutoOptionSlow, kAutoOptionSlow);
 		m_chooser_options_wait.AddOption(kAutoOptionWait, kAutoOptionWait);
 		m_chooser_options_wait.AddOption(kAutoOptionNoWait, kAutoOptionNoWait);
-		frc::SmartDashboard::PutData("Auto Modes", &m_chooser);
-		frc::SmartDashboard::PutData("Auto Move?", &m_chooser_options_dir);
-		frc::SmartDashboard::PutData("Auto Fast?", &m_chooser_options_speed);
-		frc::SmartDashboard::PutData("Auto Wait?", &m_chooser_options_wait);
+		frc::SmartDashboard::PutData("A Modes", &m_chooser);
+		frc::SmartDashboard::PutData("A Move?", &m_chooser_options_dir);
+		frc::SmartDashboard::PutData("A Fast?", &m_chooser_options_speed);
+		frc::SmartDashboard::PutData("A Wait?", &m_chooser_options_wait);
 	}
 
 
@@ -582,24 +564,24 @@ public:
 		double F_shooter = kFtunedShooter;
 	
 		/* used to tune PID numbers */
-		double P = frc::SmartDashboard::GetNumber("kP", P_shooter);
-		double I = frc::SmartDashboard::GetNumber("kI", I_shooter);
-		double D = frc::SmartDashboard::GetNumber("kD", D_shooter);
-		double F = frc::SmartDashboard::GetNumber("kF", F_shooter);
+		double P = frc::SmartDashboard::GetNumber("T kP", P_shooter);
+		double I = frc::SmartDashboard::GetNumber("T kI", I_shooter);
+		double D = frc::SmartDashboard::GetNumber("T kD", D_shooter);
+		double F = frc::SmartDashboard::GetNumber("T kF", F_shooter);
 
 		// bring up shooter
 		// m_shooter_star->Set(ControlMode::Velocity, m_IdleShooterVelocity);
 		m_shooter_star->Set(ControlMode::PercentOutput, m_IdleShooterPower);
-		m_shooter_C1 = frc::SmartDashboard::GetNumber("shoot C1", kInitialShooterC1);
-		m_shooter_C2 = frc::SmartDashboard::GetNumber("shoot C2", kInitialShooterC2);
-		m_shooter_C3 = frc::SmartDashboard::GetNumber("shoot C3", kInitialShooterC3);
-		m_shooter_C4 = frc::SmartDashboard::GetNumber("shoot C4", kInitialShooterC4);
+		m_shooter_C1 = frc::SmartDashboard::GetNumber("T C1", kInitialShooterC1);
+		m_shooter_C2 = frc::SmartDashboard::GetNumber("T C2", kInitialShooterC2);
+		m_shooter_C3 = frc::SmartDashboard::GetNumber("T C3", kInitialShooterC3);
+		m_shooter_C4 = frc::SmartDashboard::GetNumber("T C4", kInitialShooterC4);
 
 		m_shooter_star->Config_kF(kPIDLoopIdx, F, kTimeoutMs); // was .1097  /* set closed loop gains in slot0 */
 		m_shooter_star->Config_kP(kPIDLoopIdx, P, kTimeoutMs); // was 0.22
 		m_shooter_star->Config_kI(kPIDLoopIdx, I, kTimeoutMs); // was 0
 		m_shooter_star->Config_kD(kPIDLoopIdx, D, kTimeoutMs); // was 0
-		frc::SmartDashboard::PutNumber("pid check F", F);
+		// frc::SmartDashboard::PutNumber("t pid check F", F);
 
 		// position ponytail up
 		m_ponytail_solenoid.Set(frc::DoubleSolenoid::kForward);
@@ -622,9 +604,12 @@ public:
 
 		// for Galactic Search
 		m_search_state = kSearchStart;
-		frc::SmartDashboard::PutString("S Ball angles", "looking for 3...");
-		frc::SmartDashboard::PutNumber("S Ball count", m_visionSubsystem->totalBalls);
-		frc::SmartDashboard::PutString("S Ball angles", m_visionSubsystem->sortBallAngles());
+		AutoPath * selectedPath = m_visionSubsystem->selectAutoPath();
+		frc::SmartDashboard::PutString("S Path name", selectedPath->m_searchPathName);
+		// frc::SmartDashboard::PutString("S Ball angles", "looking for 3...");
+		// frc::SmartDashboard::PutNumber("S Ball count", m_visionSubsystem->totalBalls);
+		// frc::SmartDashboard::PutString("S Ball angles", m_visionSubsystem->sortBallAngles());
+		
 		// none of these catches will catch a memory access error it seems
 		// try { frc::SmartDashboard::PutString("S Ball angles", m_visionSubsystem->sortBallAngles());
 		// } catch (std::exception& ex ) {
@@ -639,9 +624,16 @@ public:
 		// 	std::string err_string = "(bad) Error observing balls: ";
 		// 	DriverStation::ReportError(err_string.c_str());
 		// }
+
 		// at this point we should determine path heuristically, not read dashboard
-		std::string searchAngles = frc::SmartDashboard::GetString("S Angles", kSearchAnglesStrARed);
-		std::string searchPositions = frc::SmartDashboard::GetString("S Positions", kSearchPositionsStrARed);
+		std::string searchAngles = frc::SmartDashboard::GetString("S Angles", "");
+		std::string searchPositions = frc::SmartDashboard::GetString("S Positions", "");
+		if (m_autoSelected == kAutoNameSearchAuto) {
+			searchAngles = selectedPath->m_searchAngles;
+			searchPositions = selectedPath->m_searchPositions;
+			frc::SmartDashboard::PutString("S Angles", searchAngles);
+			frc::SmartDashboard::PutString("S Positions", searchPositions);
+		}
 		m_search_angles = UnpackNumbers (searchAngles);
 		m_search_positions = UnpackNumbers (searchPositions);
 		std::cout << "search angles: ";
@@ -706,7 +698,7 @@ public:
 
 		bool turret_on_hall = false;
 		bool turret_on_port_or_star_hall = false;
-		frc::SmartDashboard::PutString("turr state", "initial move");
+		frc::SmartDashboard::PutString("I turr state", "initial move");
 
 		// code from WPI to set starting position
 		// int absolutePosition = m_turret->GetSelectedSensorPosition(0) & 0xFFF; /* mask out the bottom12 bits, we don't care about the wrap arounds */
@@ -727,18 +719,18 @@ public:
 			turret_on_port_or_star_hall = !hall_effect_port.Get() || !hall_effect_star.Get();
 			if (turret_on_port_or_star_hall) {
 				m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
-				frc::SmartDashboard::PutString("turr state", "found wrong hall");
+				frc::SmartDashboard::PutString("I turr state", "found wrong hall");
 				throw "found port or starboard hall sensor"; // should terminate program
 				break; // exit loop
 			} else if (turret_on_hall) { 
 				m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
-				frc::SmartDashboard::PutString("turr state", "found hall 1");
+				frc::SmartDashboard::PutString("I turr state", "found hall 1");
 				break; // exit loop
 			}
 			Wait(0.1);
 		} // while
 		m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
-		frc::SmartDashboard::PutString("turr state", "hall or time");
+		frc::SmartDashboard::PutString("I turr state", "hall or time");
 
 		turret_on_hall = !hall_effect.Get();
 		if (!turret_on_hall) {
@@ -748,7 +740,7 @@ public:
 				turret_on_hall = !hall_effect.Get();
 				if (turret_on_hall) { 
 					m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
-					frc::SmartDashboard::PutString("turr state", "found hall 2");
+					frc::SmartDashboard::PutString("I turr state", "found hall 2");
 					break; // exit loop
 				}
 				Wait(0.1);
@@ -822,7 +814,7 @@ public:
 		targetOffsetAngle = -targetOffsetAngle; 
 		double current_pos = m_turret->GetSelectedSensorPosition(0);
 		if (current_pos > kTurretLimitStarboard && current_pos < kTurretLimitPort) {
-			frc::SmartDashboard::PutString("turr state", "tracking");
+			frc::SmartDashboard::PutString("I turr state", "tracking");
 			m_need_to_reset_tracking_turret_move = true;
 			// m_pidController_limelight_turret->SetSetpoint(0);  // try moving this to RobotInit() and doing it only once
 			double new_speed = m_pidController_limelight_turret->Calculate(targetOffsetAngle);
@@ -836,7 +828,7 @@ public:
 
 			// hold position; don't reset when on target
 		} else {
-			frc::SmartDashboard::PutString("turr state", "unsafe");
+			frc::SmartDashboard::PutString("I turr state", "unsafe");
 			m_turret->Set(ControlMode::PercentOutput, 0);
 		}
 		return result;
@@ -870,7 +862,7 @@ public:
 	void SpinThreeTimes() {
 		std::string colorString;
 		double confidence = 0.0;
-		frc::SmartDashboard::PutNumber("CP COMPLETE", false); // CP = Control Panel
+		frc::SmartDashboard::PutNumber("CP Complete", false); // CP = Control Panel
 
 		m_robotDrive.TankDrive(-kDriveAgainstCPSpeed, -kDriveAgainstCPSpeed); // press against control panel
 		MoveTurretToManualPosition(kTurretUP); // hold turret in position
@@ -904,18 +896,18 @@ public:
 		case kCompletedRotations:
 			m_control_spinner.Set(0.0); // stop
 			//m_ponytail_solenoid.Set(frc::DoubleSolenoid::kForward); // raise spinner
-			frc::SmartDashboard::PutNumber("CP COMPLETE", true);
+			frc::SmartDashboard::PutNumber("CP Complete", true);
 			break;
 		}
-		frc::SmartDashboard::PutString("color", ColorToString(matchedColor));
-		frc::SmartDashboard::PutNumber("confidence", confidence);
+		frc::SmartDashboard::PutString("CP color", ColorToString(matchedColor));
+		frc::SmartDashboard::PutNumber("CP conf", confidence);
 		
 	}
 
 	void SpinToColor(frc::Color spin_to_color) {
 		std::string colorString;
 		double confidence = 0.0;
-		frc::SmartDashboard::PutNumber("CP COMPLETE", false);
+		frc::SmartDashboard::PutNumber("CP Complete", false);
 
 		m_robotDrive.TankDrive(-kDriveAgainstCPSpeed, -kDriveAgainstCPSpeed); // press against control panel
 		MoveTurretToManualPosition(kTurretUP); // hold turret in position
@@ -940,11 +932,11 @@ public:
 			case kToColorComplete:
 				m_control_spinner.Set(0.0);
 				//m_ponytail_solenoid.Set(frc::DoubleSolenoid::kForward); // raise spinner here
-				frc::SmartDashboard::PutNumber("CP COMPLETE", true);
+				frc::SmartDashboard::PutNumber("CP Complete", true);
 				break;
 		}
-		frc::SmartDashboard::PutString("color", ColorToString(matchedColor));
-		frc::SmartDashboard::PutNumber("confidence", confidence);
+		frc::SmartDashboard::PutString("CP color", ColorToString(matchedColor));
+		frc::SmartDashboard::PutNumber("CP conf", confidence);
 	}
 
 	void AutoIntakeBalls() {
@@ -956,21 +948,21 @@ public:
 			// frc::SmartDashboard::PutNumber("intake state", m_intake_state);
 			switch (m_intake_state) {
 				case kBallJustArrived:
-					frc::SmartDashboard::PutNumber("AB just arrived", true);
+					frc::SmartDashboard::PutNumber("ab just arrived", true);
 					/* both on */ m_intake.Set(-kIntakeSpeed); m_vert_conveyer.Set(-kConveyerSpeed);
 					m_timer.Reset();
 					m_timer.Start();
 					m_intake_state = kBallInBreach; 
 					break;
 				case kBallInBreach: // run long enough to get ball into conveyer, then stop intake
-					frc::SmartDashboard::PutNumber("AB in breach", true);
+					frc::SmartDashboard::PutNumber("ab in breach", true);
 					/* both on */ m_intake.Set(-kIntakeSpeed); m_vert_conveyer.Set(-kConveyerSpeed);
 					if (m_timer.Get() >= kIntakeDelayArrival) {
 						m_intake_state = kBallJustLeft;
 					}
 					break;
 				case kBallJustLeft:  //  keep intake stopped for a period to create space
-					frc::SmartDashboard::PutNumber("AB just left", true);
+					frc::SmartDashboard::PutNumber("ab just left", true);
 					// experiment not making this gap anymore
 					/* both on */ m_intake.Set(-kIntakeSpeed); m_vert_conveyer.Set(-kConveyerSpeed);
 					if (m_timer.Get() >= kIntakeDelayArrival + kIntakeDelayGap) {
@@ -978,7 +970,7 @@ public:
 					}
 					break;
 				case kBreachEmpty:
-					frc::SmartDashboard::PutNumber("AB empty", true);
+					frc::SmartDashboard::PutNumber("ab empty", true);
 					/* conveyer stopped */ m_intake.Set(-kIntakeSpeed); m_vert_conveyer.Set(0);
 					if (eye_intake.Get()) { // a ball just arrived at breach
 						m_intake_state = kBallJustArrived;
@@ -1019,7 +1011,7 @@ public:
 
 		double shooter_speed_in_units = m_IdleShooterVelocity;
 		if (targetSeen != 0.0) {
-			frc::SmartDashboard::PutNumber("targ angle", targetOffsetAngle_Vertical);
+			frc::SmartDashboard::PutNumber("L targ angle", targetOffsetAngle_Vertical);
 			bool limelight_on_target = TrackTargetWithTurret(targetOffsetAngle_Horizontal);
 
 			if (targetOffsetAngle_Vertical < -18) {
@@ -1035,12 +1027,12 @@ public:
 				shooter_speed_in_units = m_shooter_C1 * pow(dist_in_feet,3) 
 				                       + m_shooter_C2 * pow(dist_in_feet,2) 
 									   + m_shooter_C3 * dist_in_feet + m_shooter_C4; 
-				frc::SmartDashboard::PutNumber("targ dist", dist_in_feet);
+				frc::SmartDashboard::PutNumber("L targ dist", dist_in_feet);
 			}
 			if (manual_boost) {shooter_speed_in_units *= 1.1;}
 			else if (manual_deboost) {shooter_speed_in_units *= 0.9;}
 			double shooter_speed_error = m_shooter_star->GetClosedLoopError(kPIDLoopIdx);
-			frc::SmartDashboard::PutNumber("flywheel err", shooter_speed_error);
+			frc::SmartDashboard::PutNumber("L fly err", shooter_speed_error);
 			if (shooter_speed_error < kMaxShooterSpeedError && limelight_on_target) {
 				// auto feed balls into shooter
 				conveyer_speed = -kConveyerSpeed;
@@ -1050,9 +1042,9 @@ public:
 		} else { // no target; permit manual control of conveyer
 			manual_conveyer_ok = true;
 			m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret; needs to hold position
-			frc::SmartDashboard::PutString("turr state", "stopped");
+			frc::SmartDashboard::PutString("I turr state", "stopped");
 		}
-		frc::SmartDashboard::PutNumber("shoot targ speed", shooter_speed_in_units);
+		frc::SmartDashboard::PutNumber("L targ speed", shooter_speed_in_units);
 		m_shooter_star->Set(ControlMode::Velocity, shooter_speed_in_units);
 
 	}
@@ -1060,7 +1052,7 @@ public:
 	double BoostSpeedIfTurning (double s, double y, double x) {
 		if (x > 0 && y > 0) {
 			double angle = ConvertRadsToDegrees(atan(abs(y/x)));
-			frc::SmartDashboard::PutNumber("joy angle", angle);
+			// frc::SmartDashboard::PutNumber("D joy angle", angle);
 			if (angle > 30 && angle < 60) { // turning, so boost
 				s *= kArcadeTurningBoost;
 			}
@@ -1191,7 +1183,7 @@ public:
 		// just in case turret has a mind of its own, try to stop it... shouldn't happen
 		double turret_pos = m_turret->GetSelectedSensorPosition(0);
 		if (turret_pos < kTurretLimitStarboard || turret_pos > kTurretLimitPort) {
-			frc::SmartDashboard::PutString("turr state", "out of range");
+			frc::SmartDashboard::PutString("I turr state", "out of range");
 			m_turret->Set(ControlMode::PercentOutput, 0);
 		}
 		
@@ -1205,8 +1197,8 @@ public:
 		double currAngle = (int)ahrs->GetAngle() % 360;  // angle accumulates past 360, so modulus
 
 		// for planning autonomous
-		frc::SmartDashboard::PutNumber ("T Heading", currAngle); 
-		frc::SmartDashboard::PutNumber ("T Pos", m_leftfront.GetSelectedSensorPosition(0)); 
+		frc::SmartDashboard::PutNumber ("D Heading", currAngle); 
+		frc::SmartDashboard::PutNumber ("D Pos", m_leftfront.GetSelectedSensorPosition(0)); 
 
 		if (m_need_to_reset_coast && !brake_button_pressed) { // no longer braking; go back to coasting
 			m_leftfront.SetNeutralMode(NeutralMode::Coast);
@@ -1292,7 +1284,7 @@ public:
 			} else {
 				// not rotating or chasing balls; drive by stick
 				speed_factor = BoostSpeedIfTurning(speed_factor, robot_rel_Y, robot_rel_X);
-				frc::SmartDashboard::PutNumber("arcade boost", speed_factor);
+				frc::SmartDashboard::PutNumber("D arcade boost", speed_factor);
 				m_robotDrive.ArcadeDrive(ScaleSpeed(robot_rel_Y, speed_factor), ScaleSpeed(robot_rel_X, speed_factor));
 				// experiment for Mike CN: m_robotDrive.TankDrive(ScaleSpeed(robot_rel_Y, speed_factor), ScaleSpeed(field_rel_Y, speed_factor));
 				m_pidController_gyro->Reset(); // clears out integral state, etc
@@ -1321,7 +1313,7 @@ public:
 			if (m_need_to_reset_tracking_turret_move) {
 				m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
 				m_need_to_reset_tracking_turret_move = false;
-				frc::SmartDashboard::PutString("turr state", "tracking stopped");
+				frc::SmartDashboard::PutString("I turr state", "tracking stopped");
 			}
 		}
 		OperateConveyer(conveyer_in_button, conveyer_out_button, conveyer_speed);
@@ -1351,7 +1343,7 @@ public:
 		} else if (m_need_to_reset_manual_turret_move) {
 			m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
 			m_need_to_reset_manual_turret_move = false;
-			frc::SmartDashboard::PutString("turr state", "man stopped");
+			frc::SmartDashboard::PutString("I turr state", "man stopped");
 		}
 		// frc::SmartDashboard::PutNumber("turret pos3", m_turret->GetSelectedSensorPosition(0));
 	}
@@ -1426,7 +1418,7 @@ public:
 
 	void AutonomousPeriodic() {
 
-		if (m_autoSelected == kAutoNameSearch) {
+		if (m_autoSelected == kAutoNameSearchMan || m_autoSelected == kAutoNameSearchAuto) {
 			if (m_timer2.Get() < 3.0) {
 				AutoMoveOffLine(true, true);
 			} else { // done dropping intake; start searching
