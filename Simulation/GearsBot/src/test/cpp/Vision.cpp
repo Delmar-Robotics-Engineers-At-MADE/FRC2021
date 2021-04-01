@@ -7,7 +7,7 @@ protected:
 
 TEST_F(VisionTest, BallSort) {
     VisionSubsystem *vs = new VisionSubsystem();
-    std::string ballAngles = vs->sortFakeBallAngles();
+    std::string ballAngles = vs->sortFakeBallDistances();
     EXPECT_EQ(ballAngles, "37.964 37.964 37.964 ");
     delete(vs);
 }

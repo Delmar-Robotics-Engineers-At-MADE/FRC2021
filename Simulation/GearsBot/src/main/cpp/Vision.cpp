@@ -4,6 +4,8 @@
 #include "Vision.h"
 #include <iostream> // for std::cout
 #include <sstream> // for stringstream
+#include <random> // for fake balls to test with
+#include <algorithm>
 #include <frc/DriverStation.h>
 
 const static double kBallTrackSmoothingTime = 2.0;
@@ -97,18 +99,21 @@ std::vector<VisionSubsystem::Ball*> VisionSubsystem::getBalls()
 // return 3 fake balls
 std::vector<VisionSubsystem::Ball*> VisionSubsystem::getFakeBalls()
 {
-    int index = 0;
-    int fakeBallCount = 3;
+    int fakeBallCount = 10;
+    std::srand(1);  // seeds random number generator
+    std::default_random_engine generator;
+    std::uniform_int_distribution<> distrib(0, 80); // uniform dist of integers between 0 and 130
     std::vector<Ball*> balls = std::vector<Ball*>(fakeBallCount); 
-    for (int i = 0; i < fakeBallCount*4; i += 4) {
+    for (int i = 0; i < fakeBallCount; i ++) {
         box = std::vector<double>(4);
-        for (int j = 0; j < 4; j++) {
-            box[j] = index*2 + j*2;
-        }
-        balls[index] = new Ball(box);
-        index++;
+        double coord1 = distrib(generator);
+        double coord2 = distrib(generator);
+        box[0] = coord1;
+        box[1] = coord2;
+        box[2] = coord1 + distrib(generator);
+        box[3] = coord2 + distrib(generator);
+        balls[i] = new Ball(box);
     }
-    // std::cout << "End of getBalls" << std::endl;
     return balls;
 }
 
@@ -179,6 +184,11 @@ void VisionSubsystem::updateClosestBall() {
     }
 }
 
+bool VisionSubsystem::ballPtrComparator (VisionSubsystem::Ball *a, VisionSubsystem::Ball *b) {
+    std::cout << "compare: " << (a->distance < b->distance) << std::endl;
+    return (a->distance < b->distance);
+}
+
 std::string VisionSubsystem::sortBallAngles() {
     
     allBallsSorted = "unknown";
@@ -188,7 +198,7 @@ std::string VisionSubsystem::sortBallAngles() {
             std::sort(balls.begin(), balls.end());  // uses custom operator < for comparison
             std::stringstream ss;
             for(std::vector<VisionSubsystem::Ball*>::iterator it = balls.begin(); 
-            it != balls.end(); ++it) { 
+              it != balls.end(); ++it) { 
                 ss << (*it)->distance << " "; 
             }
             allBallsSorted = ss.str();
@@ -203,16 +213,26 @@ std::string VisionSubsystem::sortBallAngles() {
     return allBallsSorted;
 }
 
-std::string VisionSubsystem::sortFakeBallAngles() {
+std::string VisionSubsystem::sortFakeBallDistances() {
+    std::stringstream ss1, ss2;
     std::vector<VisionSubsystem::Ball*> balls = getFakeBalls();
-    std::sort(balls.begin(), balls.end());  // uses custom operator < for comparison
-    std::stringstream ss;
-    for(std::vector<VisionSubsystem::Ball*>::iterator it = balls.begin(); 
-    it != balls.end(); ++it) { 
-        ss << (*it)->distance << " "; 
-    }
-    allBallsSorted = ss.str();
 
+    for(std::vector<VisionSubsystem::Ball*>::iterator it = balls.begin(); 
+      it != balls.end(); ++it) { 
+        ss1 << (*it)->distance << " "; 
+    }
+    std::cout << "distances b4 sort: " << ss1.str() << std::endl;
+
+    std::sort(balls.begin(), balls.end(), ballPtrComparator);  // because vector elements are Ball pointers, not Balls, cannot use < operator
+
+    for(std::vector<VisionSubsystem::Ball*>::iterator it = balls.begin(); 
+      it != balls.end(); ++it) { 
+        ss2 << (*it)->distance << " "; 
+    }
+    allBallsSorted = ss2.str();
+    std::cout << "distances after sort: " << allBallsSorted << std::endl;
+
+    ss1.clear(); ss2.clear();
     disposeBalls(balls);
     return allBallsSorted;
 }

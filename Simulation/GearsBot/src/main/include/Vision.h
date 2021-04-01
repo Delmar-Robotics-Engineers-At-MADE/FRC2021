@@ -36,6 +36,8 @@ public:
         virtual bool operator < (const Ball& b) const; // comparison for sorting
     };
 
+    static bool ballPtrComparator (Ball *a, Ball *b);
+
     std::shared_ptr<NetworkTable> table;
     int totalObjects = 0, totalBalls = 0;
     // std::vector<Ball*> balls = std::vector<Ball*>(0);  // this is an unnecessary memory management complexity
@@ -60,5 +62,5 @@ public:
     virtual void updateClosestBall();
     virtual void clearSecondClosestBall();
     virtual std::string sortBallAngles();
-    virtual std::string sortFakeBallAngles();
+    virtual std::string sortFakeBallDistances();
 };

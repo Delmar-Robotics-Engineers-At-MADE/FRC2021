@@ -66,7 +66,9 @@ void Robot::TeleopInit() {
 void Robot::TeleopPeriodic() {
       std::string ballAngles = "hello"; // m_visionSubsystem->sortedBallAngles();
       std::cout <<"ball angles: " << ballAngles << std::endl;
-  		frc::SmartDashboard::PutString("S Ball angles", m_visionSubsystem->sortFakeBallAngles());
+  		frc::SmartDashboard::PutString("S Ball angles", m_visionSubsystem->sortFakeBallDistances());
+
+
 }
 
 /**
