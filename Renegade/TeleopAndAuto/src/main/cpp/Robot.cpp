@@ -1436,32 +1436,32 @@ public:
 						// 	m_search_state = kSearchTurningToBall2;
 						// 	break;
 						case kSearchTurningToBall1:
-							std::cout << "state= turning to: 1: " << m_search_angles[0] << std::endl;
+							//std::cout << "state= turning to: 1: " << m_search_angles[0] << std::endl;
 							doneRotating = RotateToAngle(m_search_angles[0]);
 							if (doneRotating) {m_search_state = kSearchDrivingToBall1;}
 							break;
 						case kSearchDrivingToBall1:
-							std::cout << "state= driving to: 1" << m_search_positions[0] << std::endl;
+							//std::cout << "state= driving to: 1" << m_search_positions[0] << std::endl;
 							doneDriving = DriveToPosition(m_search_positions[0]);
 							if (doneDriving) {m_search_state = kSearchTurningToBall2;}
 							break;
 						case kSearchTurningToBall2:
-							std::cout << "state= turning to: 2" << m_search_angles[1] <<std::endl;
+							//std::cout << "state= turning to: 2" << m_search_angles[1] <<std::endl;
 							doneRotating = RotateToAngle(m_search_angles[1]);
 							if (doneRotating) {m_search_state = kSearchDrivingToBall2;}
 							break;
 						case kSearchDrivingToBall2:
-							std::cout << "state= driving to: 2" << m_search_positions[1] << std::endl;
+							//std::cout << "state= driving to: 2" << m_search_positions[1] << std::endl;
 							doneDriving = DriveToPosition(m_search_positions[1]);
 							if (doneDriving) {m_search_state = kSearchTurningToBall3;}
 							break;
 						case kSearchTurningToBall3:
-							std::cout << "state= turning to: 3" << m_search_angles[2] << std::endl;
+							//std::cout << "state= turning to: 3" << m_search_angles[2] << std::endl;
 							doneRotating = RotateToAngle(m_search_angles[2]);
 							if (doneRotating) {m_search_state = kSearchDrivingToBall3;}
 							break;
 						case kSearchDrivingToBall3:
-							std::cout << "state= driving to: 3" << m_search_positions[2] << std::endl;
+							//std::cout << "state= driving to: 3" << m_search_positions[2] << std::endl;
 							doneDriving = DriveToPosition(m_search_positions[2]);
 							if (doneDriving) {
 								if (m_search_angles.size() == 3) { // A Red has only 2 turns plus end run
@@ -1470,18 +1470,18 @@ public:
 							}							
 							break;
 						case kSearchTurningToEnd:
-							std::cout << "state= turning to: 3" << m_search_angles[3] << std::endl;
+							//std::cout << "state= turning to: 3" << m_search_angles[3] << std::endl;
 							doneRotating = RotateToAngle(m_search_angles[3]);
 							if (doneRotating) {m_search_state = kSearchDrivingToEnd;}
 							break;
 						case kSearchDrivingToEnd:
-							std::cout << "state= driving to: 3" << m_search_positions[3] << std::endl;
+							//std::cout << "state= driving to: 3" << m_search_positions[3] << std::endl;
 							doneDriving = DriveToPosition(m_search_positions[3]);
 							if (doneDriving) {m_search_state = kSearchComplete;}
 							break;
 						case kSearchComplete:
 							// might need to keep collector running for a second
-							std::cout << "state= done" << std::endl;
+							//std::cout << "state= done" << std::endl;
 							m_robotDrive.TankDrive(0, 0);
 							break;
 						default: // done
