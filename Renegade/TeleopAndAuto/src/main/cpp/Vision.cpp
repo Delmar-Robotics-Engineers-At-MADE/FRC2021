@@ -58,10 +58,10 @@ VisionSubsystem::VisionSubsystem()  // constructor
     m_timer.Reset();
     m_timer.Start();
 
-    m_autoPaths[kARed] = new AutoPath("A Red", "19.0 -65", "-24056 -37076");
-	m_autoPaths[kABlue] = new AutoPath("A Blue", "25.5 -62.0 20.5", "-31621 -44390 -58237");
-	m_autoPaths[kBRed] = new AutoPath("B Red", "-59.0 43 -45", "-13269 -29660 -41168");
-	m_autoPaths[kBBlue] = new AutoPath("B Blue", "35 -54.0 15.0", "-28776 -40636 -57063");
+    m_autoPaths[kARed] = new AutoPath("A Red", "19.0 -75 10", "-24056 -37076 -70886");
+	m_autoPaths[kABlue] = new AutoPath("A Blue", "25.5 -72.0 20.5 0", "-31621 -44390 -58237 -73616");
+	m_autoPaths[kBRed] = new AutoPath("B Red", "-59.0 43 -45 0", "-13269 -29660 -41168 -66349");
+	m_autoPaths[kBBlue] = new AutoPath("B Blue", "35 -30.0 15.0 0", "-28776 -40636 -57063 -67203");
 }
 
 VisionSubsystem::~VisionSubsystem() { // destructor
@@ -312,15 +312,15 @@ AutoPath * VisionSubsystem::selectAutoPath(){
           it != balls.end(); ++it) { 
             // std::cout << "appending ball to string" << std::endl;
             // std::cout << "appending ball to string: " << (*it)->getAngle() << std::endl;
-            ss << (*it)->getAngle() << " "; 
+            ss << ConvertRadsToDegrees((*it)->getAngle()) << " "; 
         }
         allBallsSorted = ss.str();
         std::cout << "sorted angles: " << allBallsSorted << std::endl;
 
         Ball *closestBall = *(balls.begin());
-        if (abs(closestBall->getAngle()) < kGalacticSearchAngleTolerance) { // only A Red has close center ball
+        if (abs(ConvertRadsToDegrees(closestBall->getAngle())) < kGalacticSearchAngleTolerance) { // only A Red has close center ball
             determination = kARed;
-        } else if (closestBall->getAngle() < 0) { // only B Red has closest ball to the left
+        } else if (ConvertRadsToDegrees(closestBall->getAngle()) > 0) { // only B Red has closest ball to the left
             determination = kBRed;
         } else { // by process of elimination, must be A Blue
             determination = kABlue;

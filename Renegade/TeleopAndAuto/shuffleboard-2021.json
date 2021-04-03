@@ -10,95 +10,7 @@
         "hgap": 16.0,
         "vgap": 16.0,
         "tiles": {
-          "2,0": {
-            "size": [
-              2,
-              1
-            ],
-            "content": {
-              "_type": "ComboBox Chooser",
-              "_source0": "network_table:///SmartDashboard/Auto Fast?",
-              "_title": "Auto Fast?"
-            }
-          },
-          "0,0": {
-            "size": [
-              2,
-              1
-            ],
-            "content": {
-              "_type": "ComboBox Chooser",
-              "_source0": "network_table:///SmartDashboard/Auto Modes",
-              "_title": "Auto Modes"
-            }
-          },
-          "4,0": {
-            "size": [
-              2,
-              1
-            ],
-            "content": {
-              "_type": "ComboBox Chooser",
-              "_source0": "network_table:///SmartDashboard/Auto Move?",
-              "_title": "Auto Move?"
-            }
-          },
-          "6,0": {
-            "size": [
-              2,
-              1
-            ],
-            "content": {
-              "_type": "ComboBox Chooser",
-              "_source0": "network_table:///SmartDashboard/Auto Wait?",
-              "_title": "Auto Wait?"
-            }
-          },
-          "1,1": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/CP COMPLETE",
-              "_title": "CP COMPLETE"
-            }
-          },
-          "2,1": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/color",
-              "_title": "color"
-            }
-          },
-          "3,1": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/confidence",
-              "_title": "confidence"
-            }
-          },
-          "5,1": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/flywheel err",
-              "_title": "flywheel err"
-            }
-          },
-          "2,3": {
+          "0,2": {
             "size": [
               1,
               1
@@ -109,7 +21,29 @@
               "_title": "limelight_PipelineName"
             }
           },
-          "1,3": {
+          "0,0": {
+            "size": [
+              2,
+              1
+            ],
+            "content": {
+              "_type": "ComboBox Chooser",
+              "_source0": "network_table:///SmartDashboard/A Modes",
+              "_title": "A Modes"
+            }
+          },
+          "7,1": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/S Angles",
+              "_title": "S Angles"
+            }
+          },
+          "3,2": {
             "size": [
               1,
               1
@@ -120,40 +54,139 @@
               "_title": "limelight_Interface"
             }
           },
-          "2,2": {
+          "3,0": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "ComboBox Chooser",
+              "_source0": "network_table:///SmartDashboard/A Fast?",
+              "_title": "A Fast?"
+            }
+          },
+          "5,0": {
             "size": [
               1,
               1
             ],
             "content": {
               "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/kD",
-              "_title": "kD"
+              "_source0": "network_table:///SmartDashboard/T kD",
+              "_title": "T kD"
+            }
+          },
+          "6,0": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/T kF",
+              "_title": "T kF"
+            }
+          },
+          "4,0": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "ComboBox Chooser",
+              "_source0": "network_table:///SmartDashboard/A Wait?",
+              "_title": "A Wait?"
+            }
+          },
+          "8,0": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/T kI",
+              "_title": "T kI"
+            }
+          },
+          "9,0": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/T kP",
+              "_title": "T kP"
+            }
+          },
+          "2,0": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "ComboBox Chooser",
+              "_source0": "network_table:///SmartDashboard/A Move?",
+              "_title": "A Move?"
+            }
+          },
+          "0,1": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/T C1",
+              "_title": "T C1"
+            }
+          },
+          "1,1": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/T C2",
+              "_title": "T C2"
+            }
+          },
+          "2,1": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/T C3",
+              "_title": "T C3"
+            }
+          },
+          "3,1": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/T C4",
+              "_title": "T C4"
+            }
+          },
+          "8,1": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/S Positions",
+              "_title": "S Positions"
             }
           },
           "1,2": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/kI",
-              "_title": "kI"
-            }
-          },
-          "0,2": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/kP",
-              "_title": "kP"
-            }
-          },
-          "0,3": {
             "size": [
               1,
               1
@@ -164,15 +197,15 @@
               "_title": "limelight_Stream"
             }
           },
-          "0,1": {
+          "7,0": {
             "size": [
               1,
               1
             ],
             "content": {
               "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/turr state",
-              "_title": "turr state"
+              "_source0": "network_table:///SmartDashboard/I turr state",
+              "_title": "I turr state"
             }
           },
           "6,1": {
@@ -182,11 +215,132 @@
             ],
             "content": {
               "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/targ angle",
-              "_title": "targ angle"
+              "_source0": "network_table:///SmartDashboard/S Path name",
+              "_title": "S Path name"
             }
           },
-          "6,3": {
+          "10,0": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/ab empty",
+              "_title": "ab empty"
+            }
+          },
+          "4,1": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/ab just arrived",
+              "_title": "ab just arrived"
+            }
+          },
+          "5,1": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/ab in breach",
+              "_title": "ab in breach"
+            }
+          },
+          "9,2": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/ab just left",
+              "_title": "ab just left"
+            }
+          },
+          "9,1": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/D Heading",
+              "_title": "D Heading"
+            }
+          },
+          "10,1": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/D Pos",
+              "_title": "D Pos"
+            }
+          },
+          "4,2": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/D arcade boost",
+              "_title": "D arcade boost"
+            }
+          },
+          "5,2": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/L targ angle",
+              "_title": "L targ angle"
+            }
+          },
+          "6,2": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/L targ dist",
+              "_title": "L targ dist"
+            }
+          },
+          "7,2": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/L fly err",
+              "_title": "L fly err"
+            }
+          },
+          "8,2": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/L targ speed",
+              "_title": "L targ speed"
+            }
+          },
+          "2,2": {
             "size": [
               1,
               1
@@ -197,7 +351,7 @@
               "_title": "V ball count"
             }
           },
-          "3,3": {
+          "10,2": {
             "size": [
               1,
               1
@@ -208,7 +362,7 @@
               "_title": "V ball dist"
             }
           },
-          "4,3": {
+          "0,3": {
             "size": [
               1,
               1
@@ -219,7 +373,7 @@
               "_title": "V ball angle"
             }
           },
-          "5,3": {
+          "1,3": {
             "size": [
               1,
               1
@@ -228,138 +382,6 @@
               "_type": "Text View",
               "_source0": "network_table:///SmartDashboard/V ball 2 angle",
               "_title": "V ball 2 angle"
-            }
-          },
-          "4,2": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/shoot C1",
-              "_title": "shoot C1"
-            }
-          },
-          "5,2": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/shoot C2",
-              "_title": "shoot C2"
-            }
-          },
-          "6,2": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/shoot C3",
-              "_title": "shoot C3"
-            }
-          },
-          "7,2": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/shoot C4",
-              "_title": "shoot C4"
-            }
-          },
-          "7,1": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/arcade boost",
-              "_title": "arcade boost"
-            }
-          },
-          "8,1": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/joy angle",
-              "_title": "joy angle"
-            }
-          },
-          "4,1": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/shoot targ speed",
-              "_title": "shoot targ speed"
-            }
-          },
-          "3,2": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/kF",
-              "_title": "kF"
-            }
-          },
-          "8,0": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/pid check F",
-              "_title": "pid check F"
-            }
-          },
-          "9,0": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/T Heading",
-              "_title": "T Heading"
-            }
-          },
-          "10,0": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/T Pos",
-              "_title": "T Pos"
-            }
-          },
-          "9,1": {
-            "size": [
-              1,
-              1
-            ],
-            "content": {
-              "_type": "Text View",
-              "_source0": "network_table:///SmartDashboard/targ dist",
-              "_title": "targ dist"
             }
           }
         }
@@ -393,23 +415,17 @@
                   "Visuals/Orientation": "HORIZONTAL"
                 },
                 {
-                  "_type": "Speed Controller",
-                  "_source0": "network_table:///LiveWindow/Ungrouped/Talon SRX [1]",
-                  "_title": "Talon SRX [1]",
-                  "Visuals/Orientation": "HORIZONTAL"
+                  "_type": "Boolean Box",
+                  "_source0": "network_table:///LiveWindow/Ungrouped/DigitalInput[0]/Value",
+                  "_title": "DigitalInput[0]/Value",
+                  "Colors/Color when true": "#7CFC00FF",
+                  "Colors/Color when false": "#8B0000FF"
                 },
                 {
                   "_type": "Speed Controller",
                   "_source0": "network_table:///LiveWindow/Ungrouped/Talon SRX [3]",
                   "_title": "Talon SRX [3]",
                   "Visuals/Orientation": "HORIZONTAL"
-                },
-                {
-                  "_type": "Boolean Box",
-                  "_source0": "network_table:///LiveWindow/Ungrouped/DigitalInput[0]/Value",
-                  "_title": "DigitalInput[0]/Value",
-                  "Colors/Color when true": "#7CFC00FF",
-                  "Colors/Color when false": "#8B0000FF"
                 },
                 {
                   "_type": "Differential Drivebase",
@@ -433,25 +449,26 @@
                 },
                 {
                   "_type": "Speed Controller",
-                  "_source0": "network_table:///LiveWindow/Ungrouped/Talon SRX [7]",
-                  "_title": "Talon SRX [7]",
+                  "_source0": "network_table:///LiveWindow/Ungrouped/Talon SRX [1]",
+                  "_title": "Talon SRX [1]",
                   "Visuals/Orientation": "HORIZONTAL"
                 },
                 {
-                  "_type": "Text View",
-                  "_source0": "network_table:///LiveWindow/Ungrouped/DoubleSolenoid[0,0]/Value",
-                  "_title": "DoubleSolenoid[0,0]/Value"
-                },
-                {
                   "_type": "Speed Controller",
-                  "_source0": "network_table:///LiveWindow/Ungrouped/Talon SRX [14]",
-                  "_title": "Talon SRX [14]",
+                  "_source0": "network_table:///LiveWindow/Ungrouped/Talon SRX [7]",
+                  "_title": "Talon SRX [7]",
                   "Visuals/Orientation": "HORIZONTAL"
                 },
                 {
                   "_type": "Speed Controller",
                   "_source0": "network_table:///LiveWindow/Ungrouped/Talon SRX [13]",
                   "_title": "Talon SRX [13]",
+                  "Visuals/Orientation": "HORIZONTAL"
+                },
+                {
+                  "_type": "Speed Controller",
+                  "_source0": "network_table:///LiveWindow/Ungrouped/Talon SRX [14]",
+                  "_title": "Talon SRX [14]",
                   "Visuals/Orientation": "HORIZONTAL"
                 },
                 {
@@ -465,6 +482,25 @@
                 },
                 {
                   "_type": "Boolean Box",
+                  "_source0": "network_table:///LiveWindow/Ungrouped/DigitalInput[1]/Value",
+                  "_title": "DigitalInput[1]/Value",
+                  "Colors/Color when true": "#7CFC00FF",
+                  "Colors/Color when false": "#8B0000FF"
+                },
+                {
+                  "_type": "Boolean Box",
+                  "_source0": "network_table:///LiveWindow/Ungrouped/DigitalInput[8]/Value",
+                  "_title": "DigitalInput[8]/Value",
+                  "Colors/Color when true": "#7CFC00FF",
+                  "Colors/Color when false": "#8B0000FF"
+                },
+                {
+                  "_type": "Text View",
+                  "_source0": "network_table:///LiveWindow/Ungrouped/DoubleSolenoid[0,0]/Value",
+                  "_title": "DoubleSolenoid[0,0]/Value"
+                },
+                {
+                  "_type": "Boolean Box",
                   "_source0": "network_table:///LiveWindow/Ungrouped/DigitalInput[2]/Value",
                   "_title": "DigitalInput[2]/Value",
                   "Colors/Color when true": "#7CFC00FF",
@@ -472,8 +508,8 @@
                 },
                 {
                   "_type": "Boolean Box",
-                  "_source0": "network_table:///LiveWindow/Ungrouped/DigitalInput[1]/Value",
-                  "_title": "DigitalInput[1]/Value",
+                  "_source0": "network_table:///LiveWindow/Ungrouped/DigitalInput[9]/Value",
+                  "_title": "DigitalInput[9]/Value",
                   "Colors/Color when true": "#7CFC00FF",
                   "Colors/Color when false": "#8B0000FF"
                 }

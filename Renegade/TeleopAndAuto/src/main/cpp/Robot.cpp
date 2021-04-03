@@ -47,7 +47,7 @@ using namespace frc;
 	const static double kConveyerSpeed = 0.95;
 	//const static double kFirstConveyerSpeed = 0.95;
 	const static double kIntakeSpeed = 0.7;
-	const static double kIntakeDelayArrival = 0.3; // in 2020 was 1;
+	const static double kIntakeDelayArrival = 0.2; // in 2020 was 1;
 	const static double kIntakeDelayGap = 0.0; // in 2020 was 0.05;
 
 	const static double kIdleShooterPower = 0.25; 
@@ -236,6 +236,8 @@ class Robot: public TimedRobot {
 		kSearchTurningToBall3,
 		kSearchDrivingToBall3,
 		// kSearchBallCollected3,
+		kSearchTurningToEnd,
+		kSearchDrivingToEnd,
 		kSearchComplete
 	};
 	SearchStates m_search_state = kSearchStart;
@@ -948,21 +950,21 @@ public:
 			// frc::SmartDashboard::PutNumber("intake state", m_intake_state);
 			switch (m_intake_state) {
 				case kBallJustArrived:
-					frc::SmartDashboard::PutNumber("ab just arrived", true);
+					// frc::SmartDashboard::PutString("ab state", "just arrived");
 					/* both on */ m_intake.Set(-kIntakeSpeed); m_vert_conveyer.Set(-kConveyerSpeed);
 					m_timer.Reset();
 					m_timer.Start();
 					m_intake_state = kBallInBreach; 
 					break;
 				case kBallInBreach: // run long enough to get ball into conveyer, then stop intake
-					frc::SmartDashboard::PutNumber("ab in breach", true);
+					// frc::SmartDashboard::PutNumber("ab in breach", true);
 					/* both on */ m_intake.Set(-kIntakeSpeed); m_vert_conveyer.Set(-kConveyerSpeed);
 					if (m_timer.Get() >= kIntakeDelayArrival) {
 						m_intake_state = kBallJustLeft;
 					}
 					break;
 				case kBallJustLeft:  //  keep intake stopped for a period to create space
-					frc::SmartDashboard::PutNumber("ab just left", true);
+					// frc::SmartDashboard::PutNumber("ab just left", true);
 					// experiment not making this gap anymore
 					/* both on */ m_intake.Set(-kIntakeSpeed); m_vert_conveyer.Set(-kConveyerSpeed);
 					if (m_timer.Get() >= kIntakeDelayArrival + kIntakeDelayGap) {
@@ -970,7 +972,7 @@ public:
 					}
 					break;
 				case kBreachEmpty:
-					frc::SmartDashboard::PutNumber("ab empty", true);
+					// frc::SmartDashboard::PutNumber("ab empty", true);
 					/* conveyer stopped */ m_intake.Set(-kIntakeSpeed); m_vert_conveyer.Set(0);
 					if (eye_intake.Get()) { // a ball just arrived at breach
 						m_intake_state = kBallJustArrived;
@@ -1451,11 +1453,7 @@ public:
 						case kSearchDrivingToBall2:
 							std::cout << "state= driving to: 2" << m_search_positions[1] << std::endl;
 							doneDriving = DriveToPosition(m_search_positions[1]);
-							if (doneDriving) {
-								if (m_search_angles.size() == 2) { // A Red has only 2 turns
-									m_search_state = kSearchComplete;
-								} else {m_search_state = kSearchTurningToBall3;}
-							}
+							if (doneDriving) {m_search_state = kSearchTurningToBall3;}
 							break;
 						case kSearchTurningToBall3:
 							std::cout << "state= turning to: 3" << m_search_angles[2] << std::endl;
@@ -1465,6 +1463,20 @@ public:
 						case kSearchDrivingToBall3:
 							std::cout << "state= driving to: 3" << m_search_positions[2] << std::endl;
 							doneDriving = DriveToPosition(m_search_positions[2]);
+							if (doneDriving) {
+								if (m_search_angles.size() == 3) { // A Red has only 2 turns plus end run
+									m_search_state = kSearchComplete;
+								} else {m_search_state = kSearchTurningToEnd;}
+							}							
+							break;
+						case kSearchTurningToEnd:
+							std::cout << "state= turning to: 3" << m_search_angles[3] << std::endl;
+							doneRotating = RotateToAngle(m_search_angles[3]);
+							if (doneRotating) {m_search_state = kSearchDrivingToEnd;}
+							break;
+						case kSearchDrivingToEnd:
+							std::cout << "state= driving to: 3" << m_search_positions[3] << std::endl;
+							doneDriving = DriveToPosition(m_search_positions[3]);
 							if (doneDriving) {m_search_state = kSearchComplete;}
 							break;
 						case kSearchComplete:
