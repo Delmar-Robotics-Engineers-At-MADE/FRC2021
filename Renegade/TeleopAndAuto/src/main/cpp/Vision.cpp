@@ -300,11 +300,9 @@ AutoPath * VisionSubsystem::selectAutoPath(){
             frc::Wait(0.1);
         }
     }
-    std::cout << "sorting balls= " << balls.size() << std::endl;
-    if (balls.size() == 2) {
-        // for B Blue, one ball is too far away to identify, so we usually just get 2 balls
-        determination = kBBlue;
-    } else if (balls.size() > 0) {
+
+    if (balls.size() > 0) {
+        std::cout << "sorting balls= " << balls.size() << std::endl;
         std::sort(balls.begin(), balls.end(), ballPtrComparator);  // because vector elements are Ball pointers, not Balls, cannot use < operator
         std::cout << "balls have been sorted, size=" << balls.size() << std::endl;
         std::stringstream ss;
@@ -318,7 +316,10 @@ AutoPath * VisionSubsystem::selectAutoPath(){
         std::cout << "sorted angles: " << allBallsSorted << std::endl;
 
         Ball *closestBall = *(balls.begin());
-        if (abs(ConvertRadsToDegrees(closestBall->getAngle())) < kGalacticSearchAngleTolerance) { // only A Red has close center ball
+        if (balls.size() == 2) {
+            // for B Blue, one ball is too far away to identify, so we usually just get 2 balls
+            determination = kBBlue;        
+        } else if (abs(ConvertRadsToDegrees(closestBall->getAngle())) < kGalacticSearchAngleTolerance) { // only A Red has close center ball
             determination = kARed;
         } else if (ConvertRadsToDegrees(closestBall->getAngle()) > 0) { // only B Red has closest ball to the left
             determination = kBRed;
