@@ -8,7 +8,7 @@
 #include <networktables/NetworkTableEntry.h>
 #include <frc/Timer.h>
 
-const static double kGalacticSearchAngleTolerance = 4.0;
+const static double kGalacticSearchAngleTolerance = 3.5;
 
 enum GalacticSearchPath {
 		kARed = 0,

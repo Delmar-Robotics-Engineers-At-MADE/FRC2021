@@ -316,6 +316,7 @@ AutoPath * VisionSubsystem::selectAutoPath(){
         std::cout << "sorted angles: " << allBallsSorted << std::endl;
 
         Ball *closestBall = *(balls.begin());
+        Ball *farthestBall = balls.back(); // or should it be *(--(balls.end())) ?
         if (balls.size() == 2) {
             // for B Blue, one ball is too far away to identify, so we usually just get 2 balls
             determination = kBBlue;        
@@ -323,8 +324,10 @@ AutoPath * VisionSubsystem::selectAutoPath(){
             determination = kARed;
         } else if (ConvertRadsToDegrees(closestBall->getAngle()) > 0) { // only B Red has closest ball to the left
             determination = kBRed;
-        } else { // by process of elimination, must be A Blue
+        } else if (abs(ConvertRadsToDegrees(farthestBall->getAngle())) < kGalacticSearchAngleTolerance) { // only A Blue has farthest center ball
             determination = kABlue;
+        } else { // by process of elimination, must be B Blue
+            determination = kBBlue;
         }
 
         std::cout << "sort disposing balls" << std::endl;
