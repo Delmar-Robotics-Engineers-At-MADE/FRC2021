@@ -543,6 +543,9 @@ public:
 
 			// position turret
 			MoveTurretToStartingPosition();
+
+		} else { // do-once already done, don't do again
+			frc::SmartDashboard::PutString("I turr state", "init skipped");
 		}
 
 		m_do_once_inited = true;
@@ -591,11 +594,8 @@ public:
 		// for smoothing field rel driving
 		m_timer.Reset();
 		m_timer.Start();
-	}
 
-	void AutonomousInit() {
-		DoOnceInit();
-		RepeatableInit();
+		// added in 2021 for galactic search
 		m_autoSelected = m_chooser.GetSelected();
 		m_autoSelected_options_dir = m_chooser_options_dir.GetSelected();
 		m_autoSelected_options_speed = m_chooser_options_speed.GetSelected();
@@ -664,6 +664,28 @@ public:
 		m_leftrear.SetNeutralMode(NeutralMode::Brake);
 		m_rightfront.SetNeutralMode(NeutralMode::Brake);
 		m_rightrear.SetNeutralMode(NeutralMode::Brake);
+
+	}
+
+	void AutonomousInit() {
+		DoOnceInit();
+		RepeatableInit();
+
+		/* Todo: investigate these errors:
+		in driver station log window: ERROR -6 A timeout has been exceeded: DifferentialDrive... Output not updated often enough.  Check [MotorSafety.cpp:100]
+		in RioLog window: 
+			Auto selected: Shoot/Move
+			Beginning of selectAutoPath
+			A timeout has been exceeded: DifferentialDrive... Output not updated often enough.
+			Error at Check [MotorSafety.cpp:100]: A timeout has been exceeded: DifferentialDrive... Output not updated often enough.
+			at frc::MotorSafety::Check()
+			at frc::MotorSafety::CheckMotors()
+			at frc::DriverStation::Run()
+			at
+			search angles: 19 -75 10
+			search positions: -24056 -37076 -70886
+			navX-Sensor Software Yaw Reset completed.
+		*/
 	}
 
 /********************************************** telo-op  ********************************************/
@@ -722,7 +744,9 @@ public:
 			if (turret_on_port_or_star_hall) {
 				m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
 				frc::SmartDashboard::PutString("I turr state", "found wrong hall");
-				throw "found port or starboard hall sensor"; // should terminate program
+				// throw "found port or starboard hall sensor"; // should terminate program
+				// terminating with an exception might not shut down robot, so instead, just wait here forever
+				while (true) {Wait(0.1);}
 				break; // exit loop
 			} else if (turret_on_hall) { 
 				m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
@@ -732,7 +756,9 @@ public:
 			Wait(0.1);
 		} // while
 		m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
-		frc::SmartDashboard::PutString("I turr state", "hall or time");
+		if (m_timer.Get() >= 5) {
+			frc::SmartDashboard::PutString("I turr state", "time");
+		}
 
 		turret_on_hall = !hall_effect.Get();
 		if (!turret_on_hall) {
@@ -740,13 +766,27 @@ public:
 			m_turret->Set(ControlMode::Position, -2 * kMaxTurretInitialSeek);
 			m_timer.Reset(); m_timer.Start(); while (m_timer.Get() < 5) {
 				turret_on_hall = !hall_effect.Get();
-				if (turret_on_hall) { 
+				turret_on_port_or_star_hall = !hall_effect_port.Get() || !hall_effect_star.Get();
+				if (turret_on_port_or_star_hall) {
+					m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
+					frc::SmartDashboard::PutString("I turr state", "found wrong 2");
+					// throw "found port or starboard hall sensor"; // should terminate program
+					// terminating with an exception might not shut down robot, so instead, just wait here forever
+					while (true) {Wait(0.1);}
+					break; // exit loop
+				} else if (turret_on_hall) { 
 					m_turret->Set(ControlMode::PercentOutput, 0.0); // stop turret
 					frc::SmartDashboard::PutString("I turr state", "found hall 2");
 					break; // exit loop
 				}
 				Wait(0.1);
 			} // while		
+			if (m_timer.Get() >= 5) {
+				frc::SmartDashboard::PutString("I turr state", "time 2 !!");
+				// this condition is bad, we should have found sensor, so stop here
+				while (true) {Wait(0.1);}
+
+			}
 		}
 		m_turret->SetSelectedSensorPosition(0, kPIDLoopIdx, kTimeoutMs);  // set zero position now
 	}

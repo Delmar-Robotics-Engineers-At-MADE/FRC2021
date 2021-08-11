@@ -339,6 +339,39 @@
               "_source0": "network_table:///SmartDashboard/V ball 2 angle",
               "_title": "V ball 2 angle"
             }
+          },
+          "7,2": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/CP Complete",
+              "_title": "CP Complete"
+            }
+          },
+          "8,2": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/CP color",
+              "_title": "CP color"
+            }
+          },
+          "9,2": {
+            "size": [
+              1,
+              1
+            ],
+            "content": {
+              "_type": "Text View",
+              "_source0": "network_table:///SmartDashboard/CP conf",
+              "_title": "CP conf"
+            }
           }
         }
       }
