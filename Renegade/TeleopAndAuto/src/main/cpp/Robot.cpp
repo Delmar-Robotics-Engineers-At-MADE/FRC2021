@@ -1143,13 +1143,14 @@ public:
 			targetAngle = 270.0f;
 			rotateToAngle = true;
 		}
-		if (field_rel_R > kGamepadDeadZone) {
-			rotateToAngle = true;
-			// was angle = copysign(angle, field_rel_X); // make angle negative if X is negative
-			// a little trig to convert joystick to angle
-			targetAngle =  90 - ConvertRadsToDegrees(atan(field_rel_Y/abs(field_rel_X)));
-			if (field_rel_X < 0) {targetAngle = 360 - targetAngle;}  // shift from -180>180 to 0>360
-		}
+		// no field rel driving for GRC 2021
+		// if (field_rel_R > kGamepadDeadZone) {
+		// 	rotateToAngle = true;
+		// 	// was angle = copysign(angle, field_rel_X); // make angle negative if X is negative
+		// 	// a little trig to convert joystick to angle
+		// 	targetAngle =  90 - ConvertRadsToDegrees(atan(field_rel_Y/abs(field_rel_X)));
+		// 	if (field_rel_X < 0) {targetAngle = 360 - targetAngle;}  // shift from -180>180 to 0>360
+		// }
 
 		bool reset_yaw_button_pressed = false;  // reset gyro angle
 		bool chase_cells_button = false;
@@ -1327,8 +1328,8 @@ public:
 				// not rotating or chasing balls; drive by stick
 				speed_factor = BoostSpeedIfTurning(speed_factor, robot_rel_Y, robot_rel_X);
 				frc::SmartDashboard::PutNumber("D arcade boost", speed_factor);
-				m_robotDrive.ArcadeDrive(ScaleSpeed(robot_rel_Y, speed_factor), ScaleSpeed(robot_rel_X, speed_factor));
-				// experiment for Mike CN: m_robotDrive.TankDrive(ScaleSpeed(robot_rel_Y, speed_factor), ScaleSpeed(field_rel_Y, speed_factor));
+				// change to tank drive for GRC 2021, was m_robotDrive.ArcadeDrive(ScaleSpeed(robot_rel_Y, speed_factor), ScaleSpeed(robot_rel_X, speed_factor));
+				m_robotDrive.TankDrive(ScaleSpeed(robot_rel_Y, speed_factor), ScaleSpeed(field_rel_Y, speed_factor));
 				m_pidController_gyro->Reset(); // clears out integral state, etc
 			}
 		} catch (std::exception& ex ) {
