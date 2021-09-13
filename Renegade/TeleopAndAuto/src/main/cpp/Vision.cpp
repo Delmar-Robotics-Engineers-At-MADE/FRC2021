@@ -29,8 +29,8 @@ AutoPath::AutoPath(std::string name, std::string angles, std::string positions) 
 
 double VisionSubsystem::Gamepiece::getAngle()
 {
-    std::cout << "getAngle xOffset: " << xOffset << std::endl;
-    std::cout << "getAngle distance: " << distance << std::endl;
+    // std::cout << "getAngle xOffset: " << xOffset << std::endl;
+    // std::cout << "getAngle distance: " << distance << std::endl;
     return std::atan(xOffset / distance);
 }
 
@@ -113,13 +113,13 @@ std::vector<VisionSubsystem::Ball*> VisionSubsystem::getBalls()
 {
     // was... return balls;
     // Generate array of Ball objects... moved here from periodic
-    std::cout << "Start of getBalls" << std::endl;
-    std::cout << "totalBalls= " << totalBalls << std::endl;
-    std::cout << "totalObjects= " << totalObjects << std::endl;
-    std::cout << "boxes size= " << boxes.size() << std::endl;
+    // std::cout << "Start of getBalls" << std::endl;
+    // std::cout << "totalBalls= " << totalBalls << std::endl;
+    // std::cout << "totalObjects= " << totalObjects << std::endl;
+    // std::cout << "boxes size= " << boxes.size() << std::endl;
 
     if (totalObjects != totalBalls) {
-        // not sure what this means, so bail
+        // if we have objects that are not balls, why?  And if we have more balls than objects, why?
         std::cout << "***************** CONFUSION in getBalls" << std::endl;
         return std::vector<Ball*>(0);
     } else { try {
@@ -215,7 +215,7 @@ void VisionSubsystem::OLDupdateClosestBall() {
     std::vector<VisionSubsystem::Ball*> balls = getBalls();
     bool noBallsForAWhile = m_timer.Get() > timeBallsLastSeen + kBallTrackSmoothingTime;
     if (ballcount == 0 && noBallsForAWhile) { // no balls for a while, so zero things out
-        std::cout << "closest ball: zeroing out" << std::endl;
+        // std::cout << "closest ball: zeroing out" << std::endl;
         distanceClosestBall = 0.0;
         angleClosestBall = 0.0; 
         // don't zero out second closest info, because now is the time to turn toward it
@@ -331,16 +331,16 @@ void VisionSubsystem::updateClosestBall() {
 
     std::lock_guard<std::mutex> guard(ballMutex);  // will lock mutex until we leave scope, preventing periodic from running
 
-    std::cout << "Beginning of updateClosest" << std::endl;
+    // std::cout << "Beginning of updateClosest" << std::endl;
 
     try {
         std::vector<VisionSubsystem::Ball*> balls = getBalls();
         if (balls.size() == 0) {
             angleClosestBall = 0.0;
         } else {
-            std::cout << "sorting balls= " << balls.size() << std::endl;
+            // std::cout << "sorting balls= " << balls.size() << std::endl;
             std::sort(balls.begin(), balls.end(), ballPtrComparator);  // because vector elements are Ball pointers, not Balls, cannot use < operator
-            std::cout << "balls have been sorted, size=" << balls.size() << std::endl;
+            // std::cout << "balls have been sorted, size=" << balls.size() << std::endl;
             // std::stringstream ss;
             // for(std::vector<VisionSubsystem::Ball*>::iterator it = balls.begin(); 
             //   it != balls.end(); ++it) { 
@@ -353,38 +353,40 @@ void VisionSubsystem::updateClosestBall() {
 
             Ball *closestBall = *(balls.begin());
             angleClosestBall = ConvertRadsToDegrees(closestBall->getAngle());
-            std::cout << "sort: disposing balls" << std::endl;
+            // std::cout << "sort: disposing balls" << std::endl;
             disposeBalls(balls);
-            std::cout << "End of updateClosest" << std::endl;
+            // std::cout << "End of updateClosest" << std::endl;
         }
     } catch (std::exception& ex ) {
-        std::cout << "EXCEPTION in updateClosest" << std::endl;
+        std::cout << "******************* EXCEPTION in updateClosest" << std::endl;
         angleClosestBall = 0;
     }
 
 }
 
 AutoPath * VisionSubsystem::selectAutoPath(){
-    std::cout << "Beginning of selectAutoPath" << std::endl;
+    // std::cout << "Beginning of selectAutoPath" << std::endl;
     std::vector<VisionSubsystem::Ball*> balls;
     GalacticSearchPath determination = kBBlue; 
     // afraid of a memory leak somewhere, so don't do this forever
     for (int i = 0; i <= kMaxTriesToSeeThreeBalls; i++) {
+        ballMutex.lock();
         balls = getBalls();
         if (balls.size() == 3) {
-            std::cout << "found 3 balls" << std::endl;
+            // std::cout << "found 3 balls" << std::endl;
             break;  // exit for loop
         }
-        if (i < kMaxTriesToSeeThreeBalls) {// don't dispose on last iteration of loop
+        if (i < kMaxTriesToSeeThreeBalls) {// don't dispose or unlock mutex on last iteration of loop
             disposeBalls(balls);
+            ballMutex.unlock();
             frc::Wait(0.1);
         }
     }
 
     if (balls.size() > 0) {
-        std::cout << "sorting balls= " << balls.size() << std::endl;
+        // std::cout << "sorting balls= " << balls.size() << std::endl;
         std::sort(balls.begin(), balls.end(), ballPtrComparator);  // because vector elements are Ball pointers, not Balls, cannot use < operator
-        std::cout << "balls have been sorted, size=" << balls.size() << std::endl;
+        // std::cout << "balls have been sorted, size=" << balls.size() << std::endl;
         std::stringstream ss;
         for(std::vector<VisionSubsystem::Ball*>::iterator it = balls.begin(); 
           it != balls.end(); ++it) { 
@@ -411,6 +413,7 @@ AutoPath * VisionSubsystem::selectAutoPath(){
         }
 
         std::cout << "sort disposing balls" << std::endl;
+        ballMutex.unlock();
         disposeBalls(balls);
 
     }

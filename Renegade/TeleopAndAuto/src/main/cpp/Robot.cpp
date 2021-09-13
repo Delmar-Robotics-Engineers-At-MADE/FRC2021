@@ -833,13 +833,13 @@ public:
 
 		frc::SmartDashboard::PutString("V ball count", "N/A"); // was m_visionSubsystem->getTotalBalls()
 		m_visionSubsystem->updateClosestBall();
-		double ballAngle = m_visionSubsystem->angleClosestBall; std::cout << "ball angle " << ballAngle << std::endl;
+		double ballAngle = m_visionSubsystem->angleClosestBall; // std::cout << "ball angle " << ballAngle << std::endl;
 		// double ball2Angle = ConvertRadsToDegrees(m_visionSubsystem->angleSecondClosestBall); // std::cout << "ball angle 2 " << ball2Angle << std::endl;
 		frc::SmartDashboard::PutString("V ball dist", "N/A");
 		frc::SmartDashboard::PutNumber("V ball angle", ballAngle);
 		frc::SmartDashboard::PutString("V ball 2 angle", "N/A");
 
-		bool ball_seen = m_visionSubsystem->angleClosestBall != 0.0; std::cout << "ball seen? " << ball_seen << std::endl;
+		bool ball_seen = m_visionSubsystem->angleClosestBall != 0.0; // std::cout << "ball seen? " << ball_seen << std::endl;
 		// bool second_ball_seen = m_visionSubsystem->distanceSecondClosestBall > 0.0; // std::cout << "2nd ball seen? " << ball_seen << std::endl;
 		if (ball_seen) {
 			// note: pid set point is always 0
