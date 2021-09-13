@@ -29,6 +29,8 @@ AutoPath::AutoPath(std::string name, std::string angles, std::string positions) 
 
 double VisionSubsystem::Gamepiece::getAngle()
 {
+    std::cout << "getAngle xOffset: " << xOffset << std::endl;
+    std::cout << "getAngle distance: " << distance << std::endl;
     return std::atan(xOffset / distance);
 }
 
@@ -74,6 +76,14 @@ VisionSubsystem::~VisionSubsystem() { // destructor
 
 void VisionSubsystem::periodic()
 {
+    // if (getBallsInProgress) {
+    //     // don't do anything, because getBalls is building a structure that depends on these objects
+    // } else {
+
+    std::lock_guard<std::mutex> guard(ballMutex);  // will lock mutex until we leave scope, preventing getBalls from running
+    // std::cout << "Beginning of periodic" << std::endl;
+
+    //periodicInProgress = true;
     totalBalls = 0;
     totalObjects = static_cast<int>(totalObjectsEntry.GetDouble(0));
     classes = classesEntry.GetStringArray(std::vector<std::string>(totalObjects));
@@ -89,9 +99,12 @@ void VisionSubsystem::periodic()
     // was... balls = std::vector<Ball*>(totalBalls);
 
     // Generate array of Ball objects... moved to getBalls()
+    //periodicInProgress = false;
+    // std::cout << "End of periodic" << std::endl;
+
 }
 
-int VisionSubsystem::getTotalBalls()
+int VisionSubsystem::getTotalBallsX()
 {
     return totalBalls;
 }
@@ -100,10 +113,17 @@ std::vector<VisionSubsystem::Ball*> VisionSubsystem::getBalls()
 {
     // was... return balls;
     // Generate array of Ball objects... moved here from periodic
-    // std::cout << "Start of getBalls" << std::endl;
-    // std::cout << "totalBalls= " << totalBalls << std::endl;
-    // std::cout << "totalObjects= " << totalObjects << std::endl;
-    // std::cout << "boxes size= " << boxes.size() << std::endl;
+    std::cout << "Start of getBalls" << std::endl;
+    std::cout << "totalBalls= " << totalBalls << std::endl;
+    std::cout << "totalObjects= " << totalObjects << std::endl;
+    std::cout << "boxes size= " << boxes.size() << std::endl;
+
+    if (totalObjects != totalBalls) {
+        // not sure what this means, so bail
+        std::cout << "***************** CONFUSION in getBalls" << std::endl;
+        return std::vector<Ball*>(0);
+    } else { try {
+
     int index = 0;
     std::vector<Ball*> balls = std::vector<Ball*>(totalBalls); 
     for (int cornerIndex = 0, objIndex=0; objIndex < totalObjects; cornerIndex += 4, objIndex++) {
@@ -111,19 +131,30 @@ std::vector<VisionSubsystem::Ball*> VisionSubsystem::getBalls()
         // std::cout << "getBalls corner index= " << cornerIndex << std::endl;
         // std::cout << "getBalls class[i]= " << classes[objIndex] << std::endl;
         if (classes[objIndex] == "Power_Cell") {
-            std::vector<double> corners = std::vector<double>(4);
-            for (int j = 0; j < 4; j++) {
-                //std::cout << "setting corner " << j << " to " << boxes[j + cornerIndex] << std::endl;
-                corners[j] = boxes[j + cornerIndex];
-                //std::cout << "confirming corner " << j << " is " << corners[j] << std::endl;
+            if (index >= totalBalls) {std::cout << "getBalls: missmatch in counts!" << std::endl;}
+            else {
+                std::vector<double> corners = std::vector<double>(4);
+                for (int j = 0; j < 4; j++) {
+                    //std::cout << "setting corner " << j << " to " << boxes[j + cornerIndex] << std::endl;
+                    corners[j] = boxes[j + cornerIndex];
+                    //std::cout << "confirming corner " << j << " is " << corners[j] << std::endl;
+                }
+                // std::cout << "getBalls setting result, index=" << index << std::endl;
+                balls[index] = new Ball(corners);
+                index++;
             }
-            //std::cout << "getBalls setting result, index=" << index << std::endl;
-            balls[index] = new Ball(corners);
-            index++;
         }
     }
     // std::cout << "End of getBalls, returning " << balls.size() << std::endl;
+    // getBallsInProgress = false;
     return balls;
+
+    } catch (std::exception& ex ) {
+        std::cout << "***************** EXCEPTION in getBalls" << std::endl;
+        return std::vector<Ball*>(0);
+    }
+    }
+    
 }
 
 // return 3 fake balls
@@ -176,54 +207,66 @@ double ComputeTurnAngle (double a, double b, double theta) {
    return M_PI - beta;
 }
 
-void VisionSubsystem::updateClosestBall() {
+void VisionSubsystem::OLDupdateClosestBall() {
     // frc::SmartDashboard::PutNumber("Power Cells", ballcount);
-    int ballcount = getTotalBalls();
+    // std::cout << "closest ball: begin" << std::endl;
+    int ballcount = getTotalBallsX();
+    // std::cout << "closest ball: ball count: " << ballcount << std::endl;
     std::vector<VisionSubsystem::Ball*> balls = getBalls();
     bool noBallsForAWhile = m_timer.Get() > timeBallsLastSeen + kBallTrackSmoothingTime;
     if (ballcount == 0 && noBallsForAWhile) { // no balls for a while, so zero things out
+        std::cout << "closest ball: zeroing out" << std::endl;
         distanceClosestBall = 0.0;
         angleClosestBall = 0.0; 
         // don't zero out second closest info, because now is the time to turn toward it
-    } else for (uint i = 0; i < balls.size(); i++) {
-        if (balls[i] != NULL) {
+    } else for(std::vector<VisionSubsystem::Ball*>::iterator it = balls.begin(); 
+      it != balls.end(); ++it) {
+    // was (erroneously): for (uint i = 0; i < balls.size(); i++) {
+        // std::cout << "closest ball: iterating" << std::endl;
+        if ((*it) != NULL) {
             if (   (distanceClosestBall == 0) /* seeing a ball for first time in a while */
-                || (balls[i]->distance < distanceClosestBall) ) { /* or new ball is closer than old ball */
-                double candidateAngle = balls[i]->getAngle();
+                || ((*it)->distance < distanceClosestBall) ) { /* or new ball is closer than old ball */
+                // std::cout << "closest ball: first or closest ball seen" << std::endl;
+                double candidateAngle = (*it)->getAngle();
                 //if (abs((candidateAngle - angleClosestBall) / angleClosestBall) > kBallAngleTolerance) {
                     // this jump in angle implies previous closest ball lost and new one acquired
                     // ... what to do with this?
                 //} else {
-                    distanceClosestBall = balls[i]->distance;
+                    distanceClosestBall = (*it)->distance;
                     angleClosestBall = candidateAngle;
                     timeBallsLastSeen = m_timer.Get();
                 //}
-            } else if ( (distanceSecondClosestBall == 0 && balls[i]->distance > distanceClosestBall)
-                     || (balls[i]->distance < distanceSecondClosestBall) ) { 
-                // this is not the closest ball, but is the second closest ball
-                double candidateAngle = balls[i]->getAngle();
-                if (abs((candidateAngle - angleSecondClosestBall) / angleSecondClosestBall) > kBallAngleTolerance) {
-                    // too great a jump; ignore
-                } else {
-                    distanceSecondClosestBall = balls[i]->distance;
-                    angleSecondClosestBall = candidateAngle;
-                    turnToNextBallAngle = ComputeTurnAngle(distanceClosestBall, distanceSecondClosestBall,
-                                                           angleSecondClosestBall - angleClosestBall);
-                }
+
+            // } else if ( (distanceSecondClosestBall == 0 && (*it)->distance > distanceClosestBall)
+            //          || ((*it)->distance < distanceSecondClosestBall) ) { 
+            //     // this is not the closest ball, but is the second closest ball
+            //     // std::cout << "closest ball: not closest" << std::endl;
+            //     double candidateAngle = (*it)->getAngle();
+            //     if (abs((candidateAngle - angleSecondClosestBall) / angleSecondClosestBall) > kBallAngleTolerance) {
+            //         // too great a jump; ignore
+            //     } else {
+            //         // std::cout << "closest ball: recording 2nd ball" << std::endl;
+            //         distanceSecondClosestBall = (*it)->distance;
+            //         angleSecondClosestBall = candidateAngle;
+            //         turnToNextBallAngle = ComputeTurnAngle(distanceClosestBall, distanceSecondClosestBall,
+            //                                                angleSecondClosestBall - angleClosestBall);
+            //     }
+
             }
         }
-        disposeBalls(balls);
     }
+    // std::cout << "closest ball: disposing balls" << std::endl;
+    disposeBalls(balls);
 }
 
 bool VisionSubsystem::ballPtrComparator (VisionSubsystem::Ball *a, VisionSubsystem::Ball *b) {
-    std::cout << "compare: " << (a->distance < b->distance) << std::endl;
+    // std::cout << "compare: " << (a->distance < b->distance) << std::endl;
     return (a->distance < b->distance);
 }
 
 std::string VisionSubsystem::sortBallAngles() {
     
-    std::cout << "Beginning of sort ball angles" << std::endl;
+    // std::cout << "Beginning of sort ball angles" << std::endl;
     allBallsSorted = "unknown";
     // try {
         std::vector<VisionSubsystem::Ball*> balls;
@@ -231,25 +274,25 @@ std::string VisionSubsystem::sortBallAngles() {
         for (int i = 0; i < kMaxTriesToSeeThreeBalls; i++) {
             balls = getBalls();
             if (balls.size() == 3) {
-                std::cout << "found 3 balls" << std::endl;
+                // std::cout << "found 3 balls" << std::endl;
                 break;  // exit for loop
             }
             disposeBalls(balls);
             //std::cout << "size after dispose: " << balls.size() << std::endl;
         }
-        std::cout << "sorting balls= " << balls.size() << std::endl;
+        // std::cout << "sorting balls= " << balls.size() << std::endl;
         if (balls.size() > 0) {
             std::sort(balls.begin(), balls.end(), ballPtrComparator);  // because vector elements are Ball pointers, not Balls, cannot use < operator
-            std::cout << "balls have been sorted, size=" << balls.size() << std::endl;
+            // std::cout << "balls have been sorted, size=" << balls.size() << std::endl;
             std::stringstream ss;
             for(std::vector<VisionSubsystem::Ball*>::iterator it = balls.begin(); 
               it != balls.end(); ++it) { 
-                std::cout << "appending ball to string" << std::endl;
+                // std::cout << "appending ball to string" << std::endl;
                 // std::cout << "appending ball to string: " << (*it)->getAngle() << std::endl;
                 ss << ConvertRadsToDegrees((*it)->getAngle()) << " "; 
             }
             allBallsSorted = ss.str();
-            std::cout << "sort disposing balls" << std::endl;
+            // std::cout << "sort disposing balls" << std::endl;
             disposeBalls(balls);
         }
 
@@ -259,7 +302,7 @@ std::string VisionSubsystem::sortBallAngles() {
 	// 		//DriverStation::ReportError(err_string.c_str());
     //         std::cout <<err_string << std::endl;
 	// }
-    std::cout << "sort returning string= " << allBallsSorted << std::endl;
+    // std::cout << "sort returning string= " << allBallsSorted << std::endl;
     return allBallsSorted;
 }
 
@@ -278,10 +321,47 @@ std::string VisionSubsystem::sortFakeBallAngles() {
 }
 
 // call this after turn to next ball is complete
-void VisionSubsystem::clearSecondClosestBall() {
-    distanceSecondClosestBall = 0.0;
-    angleSecondClosestBall = 0.0;
-    turnToNextBallAngle = 0.0;
+// void VisionSubsystem::clearSecondClosestBall() {
+//     distanceSecondClosestBall = 0.0;
+//     angleSecondClosestBall = 0.0;
+//     turnToNextBallAngle = 0.0;
+// }
+
+void VisionSubsystem::updateClosestBall() {
+
+    std::lock_guard<std::mutex> guard(ballMutex);  // will lock mutex until we leave scope, preventing periodic from running
+
+    std::cout << "Beginning of updateClosest" << std::endl;
+
+    try {
+        std::vector<VisionSubsystem::Ball*> balls = getBalls();
+        if (balls.size() == 0) {
+            angleClosestBall = 0.0;
+        } else {
+            std::cout << "sorting balls= " << balls.size() << std::endl;
+            std::sort(balls.begin(), balls.end(), ballPtrComparator);  // because vector elements are Ball pointers, not Balls, cannot use < operator
+            std::cout << "balls have been sorted, size=" << balls.size() << std::endl;
+            // std::stringstream ss;
+            // for(std::vector<VisionSubsystem::Ball*>::iterator it = balls.begin(); 
+            //   it != balls.end(); ++it) { 
+            //     // std::cout << "appending ball to string" << std::endl;
+            //     // std::cout << "appending ball to string: " << (*it)->getAngle() << std::endl;
+            //     ss << ConvertRadsToDegrees((*it)->getAngle()) << " "; 
+            // }
+            // allBallsSorted = ss.str();
+            // std::cout << "sorted angles: " << allBallsSorted << std::endl;
+
+            Ball *closestBall = *(balls.begin());
+            angleClosestBall = ConvertRadsToDegrees(closestBall->getAngle());
+            std::cout << "sort: disposing balls" << std::endl;
+            disposeBalls(balls);
+            std::cout << "End of updateClosest" << std::endl;
+        }
+    } catch (std::exception& ex ) {
+        std::cout << "EXCEPTION in updateClosest" << std::endl;
+        angleClosestBall = 0;
+    }
+
 }
 
 AutoPath * VisionSubsystem::selectAutoPath(){

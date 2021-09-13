@@ -42,7 +42,8 @@ using namespace frc;
 	const static double kFastSpeedFactor = 0.9;
 	const static double kArcadeTurningBoost = 1.5;
 	const static double kMinTargetAreaPercent = 0.1;
-	const static double kDriveAgainstCPSpeed = 0.25;
+	const static double kDriveAgainstCPSpeed = 0.2;
+	const static double kDriveAgainstCPDiff = 0.4;
 
 	const static double kConveyerSpeed = 0.95;
 	//const static double kFirstConveyerSpeed = 0.95;
@@ -87,21 +88,21 @@ using namespace frc;
 	const static long kAutoDriveDistance = 6000;
 
 
-	/* stock color set */
+	/* stock color set *
 	static constexpr frc::Color kBlueTarget = frc::Color(0.143, 0.427, 0.429);
 	static constexpr frc::Color kGreenTarget = frc::Color(0.197, 0.561, 0.240);
 	static constexpr frc::Color kRedTarget = frc::Color(0.561, 0.232, 0.114);
 	static constexpr frc::Color kYellowTarget = frc::Color(0.361, 0.524, 0.113);
 	static constexpr frc::Color kNoColor = frc::Color(0,0,0);
-	
+	*/
 
-	/* our mockup control panel
+	/* our mockup control panel */
 	static constexpr frc::Color kBlueTarget = frc::Color(0.175, 0.436, 0.388);
 	static constexpr frc::Color kGreenTarget = frc::Color(0.206, 0.545, 0.248);
 	static constexpr frc::Color kRedTarget = frc::Color(0.424, 0.386, 0.190);
 	static constexpr frc::Color kYellowTarget = frc::Color(0.330, 0.525, 0.145);
 	static constexpr frc::Color kNoColor = frc::Color(0,0,0);
-	*/
+	
 	
 	const static double kPtunedGyro = 0.05;
 	const static double kItunedGyro = 0.0;
@@ -604,6 +605,27 @@ public:
 		//     kAutoNameDefault);
 		std::cout << "Auto selected: " << m_autoSelected << std::endl;
 
+		// important stuff for auto
+		if (m_autoSelected == kAutoNameShootAndMove) {
+			m_limetable->PutNumber("ledMode",3.0);
+		}
+		ahrs->ZeroYaw();
+		m_leftfront.SetSelectedSensorPosition(0, kPIDLoopIdx, kTimeoutMs);
+		m_rightfront.SetSelectedSensorPosition(0, kPIDLoopIdx, kTimeoutMs);
+		m_timer.Reset();
+		m_timer.Start();
+		m_timer2.Reset();
+		m_timer2.Start();
+
+		// braking mode
+		m_leftfront.SetNeutralMode(NeutralMode::Brake);  // need brake when moving
+		m_leftrear.SetNeutralMode(NeutralMode::Brake);
+		m_rightfront.SetNeutralMode(NeutralMode::Brake);
+		m_rightrear.SetNeutralMode(NeutralMode::Brake);
+
+	}
+
+	void GalacticSearchInit() {
 		// for Galactic Search
 		m_search_state = kSearchStart;
 		AutoPath * selectedPath = m_visionSubsystem->selectAutoPath();
@@ -646,25 +668,6 @@ public:
 		for(std::vector<double>::iterator it = m_search_positions.begin(); 
 		  it != m_search_positions.end(); ++it) { std::cout << *it << " "; }
 		std::cout << std::endl;
-
-		// important stuff for auto
-		if (m_autoSelected == kAutoNameShootAndMove) {
-			m_limetable->PutNumber("ledMode",3.0);
-		}
-		ahrs->ZeroYaw();
-		m_leftfront.SetSelectedSensorPosition(0, kPIDLoopIdx, kTimeoutMs);
-		m_rightfront.SetSelectedSensorPosition(0, kPIDLoopIdx, kTimeoutMs);
-		m_timer.Reset();
-		m_timer.Start();
-		m_timer2.Reset();
-		m_timer2.Start();
-
-		// braking mode
-		m_leftfront.SetNeutralMode(NeutralMode::Brake);  // need brake when moving
-		m_leftrear.SetNeutralMode(NeutralMode::Brake);
-		m_rightfront.SetNeutralMode(NeutralMode::Brake);
-		m_rightrear.SetNeutralMode(NeutralMode::Brake);
-
 	}
 
 	void AutonomousInit() {
@@ -826,18 +829,18 @@ public:
 	}
 
 	// returns angle to unseen second ball, in degrees
-	double ChasePowerCellsByCoral() {
-		frc::SmartDashboard::PutNumber("V ball count", m_visionSubsystem->getTotalBalls());
-		m_visionSubsystem->updateClosestBall();
-		double ballAngle = ConvertRadsToDegrees(m_visionSubsystem->angleClosestBall);
-		double ball2Angle = ConvertRadsToDegrees(m_visionSubsystem->angleSecondClosestBall);
-		frc::SmartDashboard::PutNumber("V ball dist", m_visionSubsystem->distanceClosestBall);
-		frc::SmartDashboard::PutNumber("V ball angle", ballAngle);
-		frc::SmartDashboard::PutNumber("V ball 2 angle", ball2Angle);
-		double result = 0.0; // return angle to second ball if we need to turn to it
+	void ChasePowerCellsByCoral() {
 
-		bool ball_seen = m_visionSubsystem->distanceClosestBall > 0.0;
-		bool second_ball_seen = m_visionSubsystem->distanceSecondClosestBall > 0.0;
+		frc::SmartDashboard::PutString("V ball count", "N/A"); // was m_visionSubsystem->getTotalBalls()
+		m_visionSubsystem->updateClosestBall();
+		double ballAngle = m_visionSubsystem->angleClosestBall; std::cout << "ball angle " << ballAngle << std::endl;
+		// double ball2Angle = ConvertRadsToDegrees(m_visionSubsystem->angleSecondClosestBall); // std::cout << "ball angle 2 " << ball2Angle << std::endl;
+		frc::SmartDashboard::PutString("V ball dist", "N/A");
+		frc::SmartDashboard::PutNumber("V ball angle", ballAngle);
+		frc::SmartDashboard::PutString("V ball 2 angle", "N/A");
+
+		bool ball_seen = m_visionSubsystem->angleClosestBall != 0.0; std::cout << "ball seen? " << ball_seen << std::endl;
+		// bool second_ball_seen = m_visionSubsystem->distanceSecondClosestBall > 0.0; // std::cout << "2nd ball seen? " << ball_seen << std::endl;
 		if (ball_seen) {
 			// note: pid set point is always 0
 			double diff_speed = m_pidController_pixycam->Calculate(ballAngle);
@@ -845,10 +848,15 @@ public:
 			// move robot
 			frc::SmartDashboard::PutNumber("V Ball chase", diff_speed);
 			m_robotDrive.TankDrive(diff_speed+kChaseBallSpeed, -diff_speed+kChaseBallSpeed, false);
-		} else if (second_ball_seen) {
-			result = ball2Angle;
+
+		// } else if (second_ball_seen) {
+		// 	// std::cout << "returning 2nd ball" << std::endl;
+		// 	result = ball2Angle;
+		// 	// caller will initiate rotation to 2nd ball
+
+		} else { // no balls seen, caller will not send motor commands because chase button, so send stop
+			m_robotDrive.TankDrive(0, 0);
 		}
-		return result;
 	}
 
 	bool TrackTargetWithTurret(double targetOffsetAngle) {
@@ -906,7 +914,7 @@ public:
 		double confidence = 0.0;
 		frc::SmartDashboard::PutNumber("CP Complete", false); // CP = Control Panel
 
-		m_robotDrive.TankDrive(-kDriveAgainstCPSpeed, -kDriveAgainstCPSpeed); // press against control panel
+		m_robotDrive.TankDrive(-(kDriveAgainstCPSpeed-kDriveAgainstCPDiff), -(kDriveAgainstCPSpeed+kDriveAgainstCPDiff) ); // press against control panel
 		MoveTurretToManualPosition(kTurretUP); // hold turret in position
 		m_ponytail_solenoid.Set(frc::DoubleSolenoid::kReverse); // lower spinner here
 		
@@ -951,7 +959,7 @@ public:
 		double confidence = 0.0;
 		frc::SmartDashboard::PutNumber("CP Complete", false);
 
-		m_robotDrive.TankDrive(-kDriveAgainstCPSpeed, -kDriveAgainstCPSpeed); // press against control panel
+		m_robotDrive.TankDrive(-(kDriveAgainstCPSpeed-kDriveAgainstCPDiff), -(kDriveAgainstCPSpeed+kDriveAgainstCPDiff) ); // press against control panel
 		MoveTurretToManualPosition(kTurretUP); // hold turret in position
 		m_ponytail_solenoid.Set(frc::DoubleSolenoid::kReverse); // lower spinner here
 
@@ -1257,19 +1265,19 @@ public:
 		// frc::SmartDashboard::PutNumber ("Rotate ratio", abs(kMaxRotateRate - abs(rotateToAngleRate)) / kMaxRotateRate);
 
 		// auto-chase balls
-		double angleToSecondBall = 0.0;
+		// double angleToSecondBall = 0.0;
 		if (chase_cells_button) {
 			m_IdleShooterVelocity = 0.0; // kill shooter because vibration makes camera image blurry
 			m_IdleShooterPower = 0.0;
-			angleToSecondBall = ChasePowerCellsByCoral();
+			ChasePowerCellsByCoral();  // was angleToSecondBall=
 		} else { // not shooting, so idle normally
 			m_IdleShooterVelocity = kIdleShooterVelocity; // idle normally
 			m_IdleShooterPower = kIdleShooterPower; // idle normally
 		}
-		if (angleToSecondBall > 0.0) {
-			rotateToAngle = true;
-			targetAngle = angleToSecondBall;
-		}
+		// if (angleToSecondBall > 0.0) {
+		// 	rotateToAngle = true;
+		// 	targetAngle = angleToSecondBall;
+		// }
 
 		// rotation stuff
 		try {

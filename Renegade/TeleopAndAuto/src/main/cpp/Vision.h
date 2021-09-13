@@ -40,9 +40,12 @@ private:
 public:
     double distanceClosestBall = 0.0;
     double angleClosestBall = 0.0;
-    double distanceSecondClosestBall = 0.0;
-    double angleSecondClosestBall = 0.0;
-    double turnToNextBallAngle = 0.0;
+    // double distanceSecondClosestBall = 0.0;
+    // double angleSecondClosestBall = 0.0;
+    // double turnToNextBallAngle = 0.0;
+    // bool getBallsInProgress = false;
+    // bool periodicInProgress = false;
+    std::mutex ballMutex;
 
     class Gamepiece{
     public:
@@ -79,12 +82,13 @@ public:
      */
     void periodic(); // was override
 
-    virtual int getTotalBalls();
+    virtual int getTotalBallsX();
     virtual std::vector<Ball*> getBalls();
     virtual std::vector<Ball*> getFakeBalls();
     virtual void disposeBalls(std::vector<Ball*> &balls);
     virtual void updateClosestBall();
-    virtual void clearSecondClosestBall();
+    virtual void OLDupdateClosestBall();
+    // virtual void clearSecondClosestBall();
     virtual std::string sortBallAngles();
     virtual std::string sortFakeBallAngles();
     virtual AutoPath *selectAutoPath();
