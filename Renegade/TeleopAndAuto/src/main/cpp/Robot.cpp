@@ -44,6 +44,8 @@ using namespace frc;
 	const static double kMinTargetAreaPercent = 0.1;
 	const static double kDriveAgainstCPSpeed = 0.2;
 	const static double kDriveAgainstCPDiff = 0.4;
+	const static double kManualShooterBoost = 1.05;
+	const static double kManualShooterDeboost = 0.95;
 
 	const static double kConveyerSpeed = 0.95;
 	//const static double kFirstConveyerSpeed = 0.95;
@@ -88,20 +90,21 @@ using namespace frc;
 	const static long kAutoDriveDistance = 6000;
 
 
-	/* stock color set *
+	/* stock color set */
 	static constexpr frc::Color kBlueTarget = frc::Color(0.143, 0.427, 0.429);
 	static constexpr frc::Color kGreenTarget = frc::Color(0.197, 0.561, 0.240);
 	static constexpr frc::Color kRedTarget = frc::Color(0.561, 0.232, 0.114);
 	static constexpr frc::Color kYellowTarget = frc::Color(0.361, 0.524, 0.113);
 	static constexpr frc::Color kNoColor = frc::Color(0,0,0);
-	*/
+	
 
-	/* our mockup control panel */
+	/* our mockup control panel *
 	static constexpr frc::Color kBlueTarget = frc::Color(0.175, 0.436, 0.388);
 	static constexpr frc::Color kGreenTarget = frc::Color(0.206, 0.545, 0.248);
 	static constexpr frc::Color kRedTarget = frc::Color(0.424, 0.386, 0.190);
 	static constexpr frc::Color kYellowTarget = frc::Color(0.330, 0.525, 0.145);
 	static constexpr frc::Color kNoColor = frc::Color(0,0,0);
+	*/
 	
 	
 	const static double kPtunedGyro = 0.05;
@@ -854,8 +857,8 @@ public:
 		// 	result = ball2Angle;
 		// 	// caller will initiate rotation to 2nd ball
 
-		} else { // no balls seen, caller will not send motor commands because chase button, so send stop
-			m_robotDrive.TankDrive(0, 0);
+		} else { // no balls seen, but may have just closed on a ball, so cruise forward
+			m_robotDrive.TankDrive(kChaseBallSpeed, kChaseBallSpeed);
 		}
 	}
 
@@ -1079,8 +1082,8 @@ public:
 									   + m_shooter_C3 * dist_in_feet + m_shooter_C4; 
 				frc::SmartDashboard::PutNumber("L targ dist", dist_in_feet);
 			}
-			if (manual_boost) {shooter_speed_in_units *= 1.1;}
-			else if (manual_deboost) {shooter_speed_in_units *= 0.9;}
+			if (manual_boost) {shooter_speed_in_units *= kManualShooterBoost;}
+			else if (manual_deboost) {shooter_speed_in_units *= kManualShooterDeboost;}
 			double shooter_speed_error = m_shooter_star->GetClosedLoopError(kPIDLoopIdx);
 			frc::SmartDashboard::PutNumber("L fly err", shooter_speed_error);
 			if (shooter_speed_error < kMaxShooterSpeedError && limelight_on_target) {
